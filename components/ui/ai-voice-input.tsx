@@ -4,9 +4,37 @@ import { Mic } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 
+type SpeechRecognitionResultLike = {
+  isFinal: boolean;
+  [index: number]: { transcript: string };
+};
+
+type SpeechRecognitionEventLike = Event & {
+  resultIndex: number;
+  results: {
+    length: number;
+    [index: number]: SpeechRecognitionResultLike;
+  };
+};
+
+type SpeechRecognitionLike = {
+  lang: string;
+  interimResults: boolean;
+  continuous: boolean;
+  onresult: ((event: SpeechRecognitionEventLike) => void) | null;
+  onend: (() => void) | null;
+  onerror: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+};
+
+type SpeechRecognitionConstructor = new () => SpeechRecognitionLike;
+
 interface AIVoiceInputProps {
   onStart?: () => void;
   onStop?: (duration: number) => void;
+  onTranscript?: (text: string) => void;
+  onUnsupported?: () => void;
   visualizerBars?: number;
   demoMode?: boolean;
   demoInterval?: number;
@@ -18,6 +46,8 @@ interface AIVoiceInputProps {
 export function AIVoiceInput({
   onStart,
   onStop,
+  onTranscript,
+  onUnsupported,
   visualizerBars = 48,
   demoMode = false,
   demoInterval = 3000,
@@ -30,6 +60,7 @@ export function AIVoiceInput({
   const [isClient, setIsClient] = useState(false);
   const [isDemo, setIsDemo] = useState(demoMode);
   const previousSubmitted = useRef(false);
+  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
 
   useEffect(() => {
     setIsClient(true);
@@ -79,10 +110,61 @@ export function AIVoiceInput({
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
+  const stopRecognition = () => {
+    recognitionRef.current?.stop();
+    recognitionRef.current = null;
+    setSubmitted(false);
+  };
+
+  const startRecognition = () => {
+    const win = window as Window & {
+      SpeechRecognition?: SpeechRecognitionConstructor;
+      webkitSpeechRecognition?: SpeechRecognitionConstructor;
+    };
+    const SpeechRecognition = win.SpeechRecognition ?? win.webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      onUnsupported?.();
+      setSubmitted(false);
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = "es-ES";
+    recognition.interimResults = false;
+    recognition.continuous = false;
+    recognition.onresult = (event) => {
+      let transcript = "";
+      for (let index = event.resultIndex; index < event.results.length; index += 1) {
+        if (event.results[index].isFinal) {
+          transcript += event.results[index][0].transcript;
+        }
+      }
+      if (transcript.trim()) {
+        onTranscript?.(transcript.trim());
+      }
+    };
+    recognition.onend = () => {
+      recognitionRef.current = null;
+      setSubmitted(false);
+    };
+    recognition.onerror = () => {
+      recognitionRef.current = null;
+      setSubmitted(false);
+    };
+    recognitionRef.current = recognition;
+    setSubmitted(true);
+    recognition.start();
+  };
+
   const handleClick = () => {
     if (isDemo) {
       setIsDemo(false);
       setSubmitted(false);
+    } else if (submitted) {
+      stopRecognition();
+    } else if (onTranscript) {
+      startRecognition();
     } else {
       setSubmitted((prev) => !prev);
     }

@@ -5,8 +5,8 @@ from fastapi.testclient import TestClient
 from aristoteles.api import app
 
 
-def _pdf_bytes() -> bytes:
-    lines = [
+def _pdf_bytes(lines: list[str] | None = None) -> bytes:
+    lines = lines or [
         f"Proveedor A ofrece garantia de 24 meses, entrega en 5 dias y precio competitivo {i}."
         for i in range(18)
     ]
@@ -64,6 +64,14 @@ def test_demo_agent_accepts_pdf_and_returns_agent_flow() -> None:
     assert payload["suggested_criteria"] == payload["criteria"]
     assert "Proveedor A" in payload["extracted_page_previews"][0]["preview"]
     assert payload["confidence"]["score"] == payload["decision"]["confidence"]["score"]
+    assert payload["analysis_mode"] == "deterministic_multiagent_demo"
+    assert set(payload["agent_outputs"]) == {
+        "planner",
+        "document",
+        "research",
+        "comparison",
+        "decision",
+    }
 
 
 def test_demo_agent_accepts_multiple_pdfs() -> None:
@@ -88,6 +96,33 @@ def test_demo_agent_accepts_multiple_pdfs() -> None:
         "cotizacion-a.pdf",
         "cotizacion-b.pdf",
     }
+
+
+def test_demo_agent_ranks_multiple_pdfs_by_decision_signals() -> None:
+    client = TestClient(app)
+    strong_offer = [
+        f"Proveedor fuerte ofrece garantia de 36 meses, entrega en 5 dias, cumple SLA y precio competitivo {i}."
+        for i in range(18)
+    ]
+    weak_offer = [
+        f"Proveedor debil ofrece garantia de 6 meses, entrega en 30 dias, costo adicional y penalidad {i}."
+        for i in range(18)
+    ]
+    response = client.post(
+        "/v1/demo/agent",
+        data={"objective": "Elegir la mejor empresa y explicar beneficios y desventajas"},
+        files=[
+            ("files", ("oferta-fuerte.pdf", BytesIO(_pdf_bytes(strong_offer)), "application/pdf")),
+            ("files", ("oferta-debil.pdf", BytesIO(_pdf_bytes(weak_offer)), "application/pdf")),
+        ],
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["decision"]["recommended_provider_id"] == "Oferta Fuerte"
+    assert "La mejor opcion es Oferta Fuerte" in payload["answer"]
+    assert payload["comparison"][0]["advantages"]
+    assert payload["comparison"][0]["disadvantages"]
 
 
 def test_demo_agent_rejects_non_pdf_content_type() -> None:

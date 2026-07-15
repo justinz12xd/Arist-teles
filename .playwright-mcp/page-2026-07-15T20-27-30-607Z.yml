@@ -1,0 +1,149 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e6]:
+    - generic [ref=e7]:
+      - link "Aristoteles" [ref=e8] [cursor=pointer]:
+        - /url: /
+      - navigation [ref=e13]:
+        - link "Que hace" [ref=e14] [cursor=pointer]:
+          - /url: "#about"
+        - link "Chat" [ref=e15] [cursor=pointer]:
+          - /url: /chat
+        - link "Flujo" [ref=e16] [cursor=pointer]:
+          - /url: "#timeline"
+        - link "Agentes" [ref=e17] [cursor=pointer]:
+          - /url: "#tracks"
+        - link "Consola" [ref=e18] [cursor=pointer]:
+          - /url: /agent
+        - link "Controles" [ref=e19] [cursor=pointer]:
+          - /url: "#speakers"
+        - link "FAQ" [ref=e20] [cursor=pointer]:
+          - /url: "#faq"
+      - link "Probar agente" [ref=e21] [cursor=pointer]:
+        - /url: /agent
+  - main [ref=e22]:
+    - generic [ref=e23]:
+      - generic [ref=e24]:
+        - paragraph [ref=e25]: oráculo de evidencia · liceo digital
+        - heading "Aristóteles" [level=1] [ref=e26]
+        - paragraph [ref=e28]: Como un consejero en el Liceo, lee tus contratos y cotizaciones, separa señales de ruido y entrega una recomendación con citas, riesgos y criterio.
+      - generic [ref=e31]:
+        - generic [ref=e32]:
+          - paragraph [ref=e33]: ágora / proveedores
+          - generic [ref=e34]:
+            - paragraph [ref=e35]: "> descifrando papiros ....... ok"
+            - paragraph [ref=e36]: "> pesando garantías ......... ok"
+            - paragraph [ref=e37]: "> invocando riesgos ......... 2 hallazgos"
+          - generic [ref=e38]:
+            - generic [ref=e39]:
+              - paragraph [ref=e40]: "03"
+              - paragraph [ref=e41]: docs
+            - generic [ref=e42]:
+              - paragraph [ref=e43]: "02"
+              - paragraph [ref=e44]: riesgos
+            - generic [ref=e45]:
+              - paragraph [ref=e46]: "18"
+              - paragraph [ref=e47]: citas
+        - generic [ref=e48]:
+          - paragraph [ref=e53]: Dictamen del oráculo
+          - paragraph [ref=e54]: Proveedor B
+          - paragraph [ref=e55]: "Menor costo total, entrega más rápida y garantía explícita. El dictamen no es fe: cada argumento apunta a su fragmento de evidencia."
+      - generic [ref=e56]:
+        - heading "Leé menos. Decidí con más evidencia." [level=2] [ref=e57]:
+          - generic [ref=e58]: Leé
+          - generic [ref=e59]: menos.
+          - generic [ref=e60]: Decidí
+          - generic [ref=e61]: con
+          - generic [ref=e62]: más
+          - generic [ref=e63]: evidencia.
+        - generic [ref=e64]:
+          - link "Ver chat" [ref=e65] [cursor=pointer]:
+            - /url: /chat
+          - link "Cómo funciona" [ref=e68] [cursor=pointer]:
+            - /url: "#timeline"
+    - generic [ref=e74]:
+      - generic [ref=e75]:
+        - paragraph [ref=e76]: "[ 01 · qué hace ]"
+        - heading "Un Liceo digital para decidir cuando la evidencia está dispersa." [level=2] [ref=e78]
+        - paragraph [ref=e79]: "La interfaz mezcla análisis moderno con símbolos clásicos: papiros, balanza y ágora. La idea es simple: ninguna recomendación sin razón, ninguna razón sin fuente."
+      - generic [ref=e80]:
+        - generic [ref=e82]:
+          - paragraph [ref=e83]: Papiro
+          - paragraph [ref=e84]: Extrae precios, plazos, garantías y condiciones escondidas entre documentos.
+        - generic [ref=e86]:
+          - paragraph [ref=e87]: Balanza
+          - paragraph [ref=e88]: Pesa las opciones bajo los mismos criterios para que la decisión sea justa.
+        - generic [ref=e90]:
+          - paragraph [ref=e91]: Ágora
+          - paragraph [ref=e92]: Entrega ventajas, riesgos y citas para defender la recomendación ante otros.
+    - generic [ref=e94]:
+      - generic [ref=e95]:
+        - paragraph [ref=e96]: "[ 02 · oráculo ]"
+        - heading "Conversá con el oráculo, pero exigile evidencia." [level=2] [ref=e98]
+        - paragraph [ref=e99]: La mitología da el gesto; el producto mantiene el rigor. Cada respuesta puede bajar del Olimpo a una cita concreta del documento.
+      - generic [ref=e101]:
+        - generic [ref=e102]:
+          - generic [ref=e103]: papiro-a.pdf
+          - generic [ref=e107]: papiro-b.pdf
+          - generic [ref=e111]: garantia-c.webp
+        - generic [ref=e115]:
+          - paragraph [ref=e117]: Necesito elegir proveedor para renovar equipos. Dejé tres papiros en el expediente.
+          - paragraph [ref=e119]: El oráculo encontró diferencias en precio, entrega y garantía. Proveedor B lidera, pero hay 2 riesgos que conviene deliberar.
+          - paragraph [ref=e121]: Mostrame las pruebas.
+          - paragraph [ref=e123]: Proveedor B declara entrega en 15 días y garantía de 24 meses. La propuesta C cuesta menos, pero calla sobre soporte postventa.
+        - generic [ref=e124]:
+          - generic [ref=e127]: Consultar al oráculo sobre riesgos, costos o citas…
+          - button "Enviar mensaje" [ref=e128]
+    - generic [ref=e132]:
+      - generic [ref=e133]:
+        - paragraph [ref=e134]: "[ 03 · método ]"
+        - heading "Del papiro disperso al dictamen defendible." [level=2] [ref=e136]
+      - generic [ref=e137]:
+        - generic [ref=e139]:
+          - paragraph [ref=e140]: "01"
+          - heading "Entregá los papiros" [level=3] [ref=e145]
+          - paragraph [ref=e146]: Cotizaciones, contratos, garantías o imágenes escaneadas.
+        - generic [ref=e148]:
+          - paragraph [ref=e149]: "02"
+          - heading "Buscá la prueba" [level=3] [ref=e153]
+          - paragraph [ref=e154]: El sistema ubica datos clave y los conecta con su fuente.
+        - generic [ref=e156]:
+          - paragraph [ref=e157]: "03"
+          - heading "Pesá alternativas" [level=3] [ref=e162]
+          - paragraph [ref=e163]: Todas las opciones pasan por la misma balanza de criterios.
+        - generic [ref=e165]:
+          - paragraph [ref=e166]: "04"
+          - heading "Deliberá el dictamen" [level=3] [ref=e171]
+          - paragraph [ref=e172]: Ventajas, riesgos y una explicación lista para compartir.
+    - generic [ref=e174]:
+      - generic [ref=e175]:
+        - heading "Que el oráculo cite sus fuentes." [level=2] [ref=e176]
+        - paragraph [ref=e177]: "Una experiencia inspirada en el Liceo: deliberación, evidencia y una recomendación que se puede defender."
+      - generic [ref=e180]:
+        - paragraph [ref=e181]: "> papiros listos: 3"
+        - paragraph [ref=e182]: "> dictamen: Proveedor B"
+        - paragraph [ref=e183]: "> riesgos pendientes: soporte postventa, penalidad por retraso"
+        - paragraph [ref=e184]: "> recomendación lista para revisar"
+        - paragraph [ref=e185]: "> ▊"
+      - link "Consultar el oráculo" [ref=e187] [cursor=pointer]:
+        - /url: /chat
+  - contentinfo [ref=e188]:
+    - generic [ref=e189]:
+      - generic [ref=e190]:
+        - generic [ref=e195]: ARISTÓTELES
+        - generic [ref=e196]: liceo digital · evidencia y dictamen
+      - navigation [ref=e197]:
+        - link "Misión" [ref=e198] [cursor=pointer]:
+          - /url: "#about"
+        - link "Flujo" [ref=e199] [cursor=pointer]:
+          - /url: "#timeline"
+        - link "FAQ" [ref=e200] [cursor=pointer]:
+          - /url: "#faq"
+      - generic [ref=e201]:
+        - link "GITHUB" [ref=e202] [cursor=pointer]:
+          - /url: "#"
+        - link "DEMO" [ref=e203] [cursor=pointer]:
+          - /url: "#"
+        - link "PDF" [ref=e204] [cursor=pointer]:
+          - /url: "#"
+    - paragraph [ref=e205]: © 2026 Aristóteles. Liceo digital para deliberar con evidencia. El juicio final sigue siendo humano.
+  - button "Open Next.js Dev Tools" [ref=e211] [cursor=pointer]

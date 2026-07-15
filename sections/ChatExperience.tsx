@@ -32,6 +32,12 @@ type AgentResult = {
   research: {
     evidence: Array<{ id: string; document: string; page: number; quote: string }>;
   };
+  comparison?: Array<{
+    provider_id: string;
+    weighted_score?: number;
+    advantages: string[];
+    disadvantages: string[];
+  }>;
   decision: {
     outcome: "recommendation" | "needs_review";
     recommended_provider_id: string | null;
@@ -65,6 +71,48 @@ const NAV = [
   { icon: History, label: "Historial" },
 ];
 
+function normalizeQuestion(value: string) {
+  return value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+}
+
+function answerWithoutDocuments(question: string) {
+  const normalized = normalizeQuestion(question);
+
+  if (/^(hola|buenas|hey|hi|hello)\b/.test(normalized)) {
+    return "Hola. Puedo responder preguntas generales sobre Aristoteles o analizar PDFs si los adjuntas.";
+  }
+
+  if (normalized.includes("que es") || normalized.includes("aristoteles") || normalized.includes("proyecto")) {
+    return "Aristoteles es un sistema de apoyo a decisiones: toma documentos privados, extrae evidencia, compara alternativas y entrega una recomendacion justificable con citas.";
+  }
+
+  if (normalized.includes("proveedor") || normalized.includes("empresa") || normalized.includes("app")) {
+    return "Puedo comparar proveedores, empresas o apps por precio, garantia, plazo, cumplimiento y riesgo. Si adjuntas varios PDFs, trato cada PDF como una alternativa y muestro beneficios, desventajas y recomendacion.";
+  }
+
+  if (normalized.includes("backend") || normalized.includes("api")) {
+    return "El backend es FastAPI. La demo del chat usa /api/agent-demo en Next, que reenvia pregunta y PDFs al endpoint /v1/demo/agent para extraer texto y generar una respuesta con evidencia.";
+  }
+
+  if (normalized.includes("document") || normalized.includes("pdf") || normalized.includes("archivo")) {
+    return "Puedes adjuntar uno o varios PDFs con el icono de clip. Cuando hay documentos, el chat los envia al backend y responde con resumen, confianza y citas por documento y pagina.";
+  }
+
+  if (normalized.includes("microfono") || normalized.includes("mic") || normalized.includes("voz")) {
+    return "El microfono dicta texto en el campo de pregunta usando el reconocimiento de voz del navegador. Funciona mejor en Chrome o Edge y puede pedir permiso para usar el microfono.";
+  }
+
+  if (normalized.includes("como") && normalized.includes("usar")) {
+    return "Para usarlo: adjunta uno o varios PDFs, escribe una pregunta como 'compara garantias' o 'que riesgos ves', y envia. Sin PDFs puedo contestar preguntas basicas del proyecto.";
+  }
+
+  return "Puedo responder preguntas generales del proyecto. Para respuestas con evidencia, adjunta uno o varios PDFs y pregunta por riesgos, costos, garantias, plazos o comparaciones.";
+}
+
 function fallbackAnswer(question: string, files: File[]): AgentResult {
   return {
     document: {
@@ -80,6 +128,7 @@ function fallbackAnswer(question: string, files: File[]): AgentResult {
       ],
     },
     research: { evidence: [] },
+    comparison: [],
     decision: {
       outcome: "needs_review",
       recommended_provider_id: null,
@@ -132,10 +181,7 @@ export function ChatExperience() {
         {
           id: crypto.randomUUID(),
           role: "assistant",
-          content:
-            cleanQuestion.toLowerCase().trim() === "hola"
-              ? "Hola. Puedo ayudarte a revisar documentos; adjunta uno o varios PDFs para responder con evidencia."
-              : "Puedo responder mejor con evidencia si adjuntas uno o varios PDFs. Sube documentos y vuelve a preguntar.",
+          content: answerWithoutDocuments(cleanQuestion),
         },
       ]);
       setIsSending(false);
@@ -280,6 +326,24 @@ export function ChatExperience() {
                                 <p className="text-xs leading-5 text-[var(--primary-60)]">{item.quote}</p>
                               </div>
                             ))}
+                            {message.result.comparison?.slice(0, 3).map((item) => (
+                              <div key={item.provider_id} className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
+                                <div className="mb-2 flex items-center justify-between gap-3">
+                                  <p className="text-xs font-medium text-white">{item.provider_id}</p>
+                                  {typeof item.weighted_score === "number" && (
+                                    <span className="font-mono text-[0.68rem] text-[var(--accent-cyan)]">
+                                      {Math.round(item.weighted_score * 100)}%
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-xs leading-5 text-emerald-200">
+                                  Beneficios: {item.advantages.join(", ") || "sin ventaja clara"}
+                                </p>
+                                <p className="mt-1 text-xs leading-5 text-amber-200">
+                                  Desventajas: {item.disadvantages.join(", ") || "sin desventaja clara"}
+                                </p>
+                              </div>
+                            ))}
                           </div>
                         )}
                       </div>
@@ -327,7 +391,16 @@ export function ChatExperience() {
                     placeholder="Preguntar lo que quieras"
                     maxLength={1200}
                   />
-                  <AIVoiceInput compact />
+                  <AIVoiceInput
+                    compact
+                    onTranscript={(text) => {
+                      setQuestion((current) => `${current}${current ? " " : ""}${text}`);
+                      setError(null);
+                    }}
+                    onUnsupported={() => {
+                      setError("Tu navegador no soporta dictado por voz. Prueba con Chrome o Edge.");
+                    }}
+                  />
                   <button
                     type="submit"
                     disabled={!canSend}
