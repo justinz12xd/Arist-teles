@@ -128,16 +128,13 @@ export function ChatExperience() {
                   <div className="min-h-10 flex-1 py-2 text-base text-[var(--primary-44)]">
                     Preguntar lo que quieras
                   </div>
+                  <AIVoiceInput compact />
                   <button className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--accent-marble)] text-black transition-transform hover:scale-105" aria-label="Enviar mensaje">
                     <ArrowUp size={18} />
                   </button>
                 </div>
               </div>
 
-              <div className="mt-4 rounded-3xl border border-white/10 bg-white/[0.03] px-4 py-2">
-                <p className="section-label text-center">whisper pronto</p>
-                <AIVoiceInput visualizerBars={36} className="py-2" />
-              </div>
 
               <p className="mt-4 text-center text-xs text-[var(--primary-44)]">
                 Aristóteles puede equivocarse. Verifica siempre las citas antes de decidir.
