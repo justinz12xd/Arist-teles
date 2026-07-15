@@ -1,0 +1,49 @@
+[project]
+name = "aristoteles-backend"
+version = "0.1.0"
+description = "Backend multiagente y RAG para Aristóteles"
+requires-python = ">=3.12,<3.15"
+dependencies = [
+  "deepagents>=0.3.0",
+  "fastapi>=0.115,<1.0",
+  "httpx>=0.28,<1.0",
+  "langchain>=1.0,<2.0",
+  "langchain-core>=1.0,<2.0",
+  "langchain-openai>=1.0,<2.0",
+  "langchain-text-splitters>=1.0,<2.0",
+  "langsmith>=0.3.0",
+  "openai>=1.68,<2.0",
+  "pillow>=11.0,<12.0",
+  "pydantic>=2.10,<3.0",
+  "pydantic-settings>=2.7,<3.0",
+  "pymupdf>=1.25,<2.0",
+  "pytesseract>=0.3.13,<1.0",
+  "python-multipart>=0.0.20,<1.0",
+  "uvicorn[standard]>=0.34,<1.0",
+  "weasyprint>=63,<70",
+]
+
+[build-system]
+requires = ["setuptools>=75,<76"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[dependency-groups]
+dev = [
+  "pytest>=8.3,<9.0",
+  "pytest-asyncio>=0.25,<1.0",
+  "ruff>=0.9,<1.0",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+asyncio_mode = "auto"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
