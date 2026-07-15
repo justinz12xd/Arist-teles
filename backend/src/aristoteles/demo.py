@@ -47,50 +47,71 @@ def _detect_providers(text: str) -> list[str]:
     return providers[:3]
 
 
-def build_demo_agent_result(objective: str, filename: str, pages: list[ExtractedPage]) -> dict[str, Any]:
-    extracted_text = "\n\n".join(page.text for page in pages if page.text.strip())
+def build_demo_agent_result(
+    objective: str,
+    documents: list[dict[str, Any]],
+) -> dict[str, Any]:
+    all_pages: list[dict[str, Any]] = [
+        {"filename": document["filename"], "page": page}
+        for document in documents
+        for page in document["pages"]
+    ]
+    extracted_text = "\n\n".join(
+        item["page"].text for item in all_pages if item["page"].text.strip()
+    )
     page_previews = [
         {
             "page_number": page.page_number,
+            "document": item["filename"],
             "method": page.method,
             "quality_score": page.quality_score,
             "preview": _preview(page.text) or "No se pudo extraer texto de esta pagina.",
         }
-        for page in pages
+        for item in all_pages
+        for page in [item["page"]]
     ]
     keywords = _keywords(extracted_text)
     providers = _detect_providers(extracted_text)
-    quality = sum(page.quality_score for page in pages) / len(pages) if pages else 0
+    quality = (
+        sum(item["page"].quality_score for item in all_pages) / len(all_pages)
+        if all_pages
+        else 0
+    )
     has_text = bool(extracted_text.strip())
     confidence_score = round(max(0.18, min(0.86, quality * (0.75 if has_text else 0.35))), 2)
     confidence_band = "high" if confidence_score >= 0.8 else "medium" if confidence_score >= 0.6 else "low"
     outcome = "recommendation" if has_text and confidence_score >= 0.55 else "needs_review"
     recommended = providers[0] if outcome == "recommendation" else None
+    filenames = [document["filename"] for document in documents]
+    combined_filename = ", ".join(filenames[:3])
+    if len(filenames) > 3:
+        combined_filename += f" y {len(filenames) - 3} mas"
 
     evidence = [
         {
             "id": f"E{index}",
-            "document": filename,
+            "document": item["filename"],
             "page": page.page_number,
             "quote": _preview(page.text, 180) or "Texto no disponible",
         }
-        for index, page in enumerate(pages[:4], start=1)
+        for index, item in enumerate(all_pages[:8], start=1)
+        for page in [item["page"]]
     ]
 
-    stages = {
-        "planner": {
+    stages = [
+        {
             "id": "planner",
             "agent": "Planner Agent",
             "status": "completed",
             "summary": "Objetivo recibido y criterios iniciales propuestos.",
         },
-        "document": {
+        {
             "id": "document",
             "agent": "Document Agent",
-            "status": "completed" if pages else "needs_review",
-            "summary": f"{len(pages)} paginas procesadas desde {filename}.",
+            "status": "completed" if all_pages else "needs_review",
+            "summary": f"{len(all_pages)} paginas procesadas desde {len(documents)} documento(s).",
         },
-        "research": {
+        {
             "id": "research",
             "agent": "Research Agent",
             "status": "completed" if has_text else "needs_review",
@@ -100,13 +121,13 @@ def build_demo_agent_result(objective: str, filename: str, pages: list[Extracted
                 else "No hay texto suficiente para extraer hechos confiables."
             ),
         },
-        "comparison": {
+        {
             "id": "comparison",
             "agent": "Comparison Agent",
             "status": "completed" if has_text else "needs_review",
             "summary": f"Alternativas detectadas: {', '.join(providers)}.",
         },
-        "decision": {
+        {
             "id": "decision",
             "agent": "Decision Agent",
             "status": "completed" if outcome == "recommendation" else "needs_review",
@@ -116,7 +137,7 @@ def build_demo_agent_result(objective: str, filename: str, pages: list[Extracted
                 else "Se requiere revision humana por evidencia insuficiente."
             ),
         },
-    }
+    ]
 
     confidence = {
         "score": confidence_score,
@@ -130,11 +151,24 @@ def build_demo_agent_result(objective: str, filename: str, pages: list[Extracted
     return {
         "objective": objective,
         "document": {
-            "filename": filename,
-            "pages": len(pages),
+            "filename": combined_filename or "documentos.pdf",
+            "pages": len(all_pages),
             "quality_score": round(quality, 2),
             "previews": page_previews,
         },
+        "documents": [
+            {
+                "filename": document["filename"],
+                "pages": len(document["pages"]),
+                "quality_score": round(
+                    sum(page.quality_score for page in document["pages"]) / len(document["pages"]),
+                    2,
+                )
+                if document["pages"]
+                else 0,
+            }
+            for document in documents
+        ],
         "stages": stages,
         "criteria": CRITERIA,
         "suggested_criteria": CRITERIA,
@@ -176,21 +210,35 @@ def build_demo_agent_result(objective: str, filename: str, pages: list[Extracted
             "confidence": confidence,
             "evidence_ids": [item["id"] for item in evidence],
         },
-        "raw_pages": [asdict(page) for page in pages],
+        "raw_pages": [
+            {"document": item["filename"], **asdict(item["page"])}
+            for item in all_pages
+        ],
     }
 
 
 async def demo_agent_endpoint(
     objective: str = Form(..., min_length=1),
-    file: UploadFile = File(...),
+    files: list[UploadFile] | None = File(default=None),
+    file: UploadFile | None = File(default=None),
 ) -> dict[str, Any]:
-    if file.content_type != "application/pdf":
-        raise HTTPException(status_code=415, detail="Only application/pdf files are supported")
-    data = await file.read()
-    if not data:
-        raise HTTPException(status_code=400, detail="PDF file is empty")
-    try:
-        pages = extract_pdf(data)
-    except Exception as exc:  # pragma: no cover - PyMuPDF raises several concrete errors.
-        raise HTTPException(status_code=400, detail="PDF could not be processed") from exc
-    return build_demo_agent_result(objective, file.filename or "documento.pdf", pages)
+    upload_files = [item for item in (files or []) if item.filename]
+    if file is not None and file.filename:
+        upload_files.append(file)
+    if not upload_files:
+        raise HTTPException(status_code=400, detail="At least one PDF file is required")
+
+    documents: list[dict[str, Any]] = []
+    for upload in upload_files:
+        if upload.content_type not in {"application/pdf", "application/octet-stream"}:
+            raise HTTPException(status_code=400, detail="Only PDF files are supported")
+        data = await upload.read()
+        if not data:
+            raise HTTPException(status_code=400, detail=f"{upload.filename} is empty")
+        try:
+            pages = extract_pdf(data)
+        except Exception as exc:  # pragma: no cover - PyMuPDF raises several concrete errors.
+            raise HTTPException(status_code=400, detail=f"{upload.filename} could not be processed") from exc
+        documents.append({"filename": upload.filename or "documento.pdf", "pages": pages})
+
+    return build_demo_agent_result(objective, documents)

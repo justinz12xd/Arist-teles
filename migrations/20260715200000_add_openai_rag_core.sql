@@ -1,14 +1,6 @@
 create extension if not exists vector;
 
-create table public.cases (
-  id uuid primary key default gen_random_uuid(),
-  owner_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
-  objective text not null check (char_length(objective) between 1 and 2000),
-  created_at timestamptz not null default now(),
-  unique (owner_id, id)
-);
-
-create table public.documents (
+create table public.rag_documents (
   id uuid primary key default gen_random_uuid(),
   owner_id uuid not null default auth.uid(),
   case_id uuid not null,
@@ -18,13 +10,13 @@ create table public.documents (
   status text not null check (status in ('indexing', 'indexed', 'failed')),
   chunk_count integer not null default 0 check (chunk_count >= 0),
   created_at timestamptz not null default now(),
-  unique (owner_id, case_id, id),
+  unique (id, case_id, owner_id),
   unique (owner_id, case_id, source_hash, embedding_model),
-  foreign key (owner_id, case_id)
-    references public.cases(owner_id, id) on delete cascade
+  foreign key (case_id, owner_id)
+    references public.cases(id, owner_id) on delete cascade
 );
 
-create table public.chunks (
+create table public.rag_chunks (
   id uuid primary key default gen_random_uuid(),
   owner_id uuid not null default auth.uid(),
   case_id uuid not null,
@@ -38,90 +30,67 @@ create table public.chunks (
   embedding vector(1536) not null,
   created_at timestamptz not null default now(),
   unique (document_id, chunk_index, embedding_model),
-  foreign key (owner_id, case_id, document_id)
-    references public.documents(owner_id, case_id, id) on delete cascade
+  foreign key (document_id, case_id, owner_id)
+    references public.rag_documents(id, case_id, owner_id) on delete cascade
 );
 
-create index documents_owner_case_idx on public.documents (owner_id, case_id);
-create index chunks_owner_case_idx on public.chunks (owner_id, case_id);
-create index chunks_document_idx on public.chunks (document_id);
-create index chunks_embedding_hnsw_idx
-  on public.chunks using hnsw (embedding vector_cosine_ops);
+create index rag_documents_owner_case_idx
+  on public.rag_documents (owner_id, case_id);
+create index rag_chunks_owner_case_idx on public.rag_chunks (owner_id, case_id);
+create index rag_chunks_document_idx on public.rag_chunks (document_id);
+create index rag_chunks_embedding_hnsw_idx
+  on public.rag_chunks using hnsw (embedding vector_cosine_ops);
 
-alter table public.cases enable row level security;
 alter table public.cases force row level security;
-alter table public.documents enable row level security;
-alter table public.documents force row level security;
-alter table public.chunks enable row level security;
-alter table public.chunks force row level security;
+alter table public.rag_documents enable row level security;
+alter table public.rag_documents force row level security;
+alter table public.rag_chunks enable row level security;
+alter table public.rag_chunks force row level security;
 
-create policy cases_owner_select
-on public.cases
+create policy rag_documents_owner_select
+on public.rag_documents
 for select to authenticated
 using (owner_id = auth.uid());
 
-create policy cases_owner_insert
-on public.cases
+create policy rag_documents_owner_insert
+on public.rag_documents
 for insert to authenticated
 with check (owner_id = auth.uid());
 
-create policy cases_owner_update
-on public.cases
+create policy rag_documents_owner_update
+on public.rag_documents
 for update to authenticated
 using (owner_id = auth.uid())
 with check (owner_id = auth.uid());
 
-create policy cases_owner_delete
-on public.cases
+create policy rag_documents_owner_delete
+on public.rag_documents
 for delete to authenticated
 using (owner_id = auth.uid());
 
-create policy documents_owner_select
-on public.documents
+create policy rag_chunks_owner_select
+on public.rag_chunks
 for select to authenticated
 using (owner_id = auth.uid());
 
-create policy documents_owner_insert
-on public.documents
+create policy rag_chunks_owner_insert
+on public.rag_chunks
 for insert to authenticated
 with check (owner_id = auth.uid());
 
-create policy documents_owner_update
-on public.documents
+create policy rag_chunks_owner_update
+on public.rag_chunks
 for update to authenticated
 using (owner_id = auth.uid())
 with check (owner_id = auth.uid());
 
-create policy documents_owner_delete
-on public.documents
+create policy rag_chunks_owner_delete
+on public.rag_chunks
 for delete to authenticated
 using (owner_id = auth.uid());
 
-create policy chunks_owner_select
-on public.chunks
-for select to authenticated
-using (owner_id = auth.uid());
-
-create policy chunks_owner_insert
-on public.chunks
-for insert to authenticated
-with check (owner_id = auth.uid());
-
-create policy chunks_owner_update
-on public.chunks
-for update to authenticated
-using (owner_id = auth.uid())
-with check (owner_id = auth.uid());
-
-create policy chunks_owner_delete
-on public.chunks
-for delete to authenticated
-using (owner_id = auth.uid());
-
-grant usage on schema public to authenticated;
-grant select, insert, update, delete on table public.cases to authenticated;
-grant select, insert, update, delete on table public.documents to authenticated;
-grant select, insert, update, delete on table public.chunks to authenticated;
+grant select, insert, update, delete on table public.rag_documents to authenticated;
+grant select, insert, update, delete on table public.rag_chunks to authenticated;
 
 create function public.match_case_chunks(
   p_case_id uuid,
@@ -150,14 +119,17 @@ as $$
     c.page,
     c.content,
     1 - (c.embedding <=> p_embedding) as similarity
-  from public.chunks c
-  join public.documents d
-    on d.owner_id = c.owner_id
+  from public.rag_chunks c
+  join public.rag_documents d
+    on d.id = c.document_id
    and d.case_id = c.case_id
-   and d.id = c.document_id
+   and d.owner_id = c.owner_id
   where c.owner_id = auth.uid()
+    and d.owner_id = auth.uid()
     and c.case_id = p_case_id
+    and d.case_id = p_case_id
     and c.embedding_model = p_embedding_model
+    and d.embedding_model = p_embedding_model
     and d.status = 'indexed'
     and 1 - (c.embedding <=> p_embedding) >= p_match_threshold
   order by c.embedding <=> p_embedding

@@ -54,7 +54,7 @@ def test_demo_agent_accepts_pdf_and_returns_agent_flow() -> None:
     payload = response.json()
     assert payload["document"]["filename"] == "cotizacion.pdf"
     assert payload["document"]["pages"] == 1
-    assert list(payload["stages"]) == [
+    assert [stage["id"] for stage in payload["stages"]] == [
         "planner",
         "document",
         "research",
@@ -66,6 +66,30 @@ def test_demo_agent_accepts_pdf_and_returns_agent_flow() -> None:
     assert payload["confidence"]["score"] == payload["decision"]["confidence"]["score"]
 
 
+def test_demo_agent_accepts_multiple_pdfs() -> None:
+    client = TestClient(app)
+    response = client.post(
+        "/v1/demo/agent",
+        data={"objective": "Comparar proveedores"},
+        files=[
+            ("files", ("cotizacion-a.pdf", BytesIO(_pdf_bytes()), "application/pdf")),
+            ("files", ("cotizacion-b.pdf", BytesIO(_pdf_bytes()), "application/pdf")),
+        ],
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["documents"] == [
+        {"filename": "cotizacion-a.pdf", "pages": 1, "quality_score": 1.0},
+        {"filename": "cotizacion-b.pdf", "pages": 1, "quality_score": 1.0},
+    ]
+    assert payload["document"]["pages"] == 2
+    assert {item["document"] for item in payload["research"]["evidence"]} == {
+        "cotizacion-a.pdf",
+        "cotizacion-b.pdf",
+    }
+
+
 def test_demo_agent_rejects_non_pdf_content_type() -> None:
     client = TestClient(app)
     response = client.post(
@@ -74,4 +98,4 @@ def test_demo_agent_rejects_non_pdf_content_type() -> None:
         files={"file": ("cotizacion.txt", BytesIO(b"not a pdf"), "text/plain")},
     )
 
-    assert response.status_code == 415
+    assert response.status_code == 400

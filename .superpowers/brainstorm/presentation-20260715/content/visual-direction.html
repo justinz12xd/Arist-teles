@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dirección visual para Aristóteles</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+      background: #090a0c;
+      color: #f5f4ef;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 10% 0%, rgba(60, 230, 194, .08), transparent 28rem),
+        #090a0c;
+    }
+    main { width: min(1500px, calc(100% - 48px)); margin: 0 auto; padding: 42px 0 64px; }
+    .eyebrow { color: #73e6ca; font: 600 11px/1.2 ui-monospace, monospace; letter-spacing: .14em; text-transform: uppercase; }
+    h1 { max-width: 900px; margin: 12px 0 10px; font-size: clamp(32px, 4vw, 58px); line-height: .98; letter-spacing: -.045em; font-weight: 560; }
+    .intro { margin: 0 0 30px; color: #a7a8a5; font-size: 16px; }
+    .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+    .choice {
+      appearance: none;
+      width: 100%;
+      padding: 0;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,.14);
+      border-radius: 18px;
+      background: #111317;
+      color: inherit;
+      text-align: left;
+      cursor: pointer;
+      transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease;
+    }
+    .choice:hover { transform: translateY(-4px); border-color: rgba(115,230,202,.55); }
+    .choice.selected { border-color: #73e6ca; box-shadow: 0 0 0 2px rgba(115,230,202,.2), 0 20px 60px rgba(0,0,0,.35); }
+    .preview { aspect-ratio: 16/9; position: relative; overflow: hidden; }
+    .meta { padding: 20px 20px 22px; border-top: 1px solid rgba(255,255,255,.1); }
+    .meta-line { display: flex; align-items: center; gap: 9px; margin-bottom: 8px; }
+    .letter { display: grid; place-items: center; width: 25px; height: 25px; border: 1px solid currentColor; border-radius: 50%; font: 700 11px ui-monospace, monospace; }
+    .meta h2 { margin: 0; font-size: 19px; letter-spacing: -.02em; }
+    .meta p { min-height: 55px; margin: 0; color: #a7a8a5; font-size: 13px; line-height: 1.45; }
+    .tag { display: inline-block; margin-top: 14px; padding: 6px 8px; border-radius: 999px; background: rgba(255,255,255,.07); font: 600 9px ui-monospace, monospace; letter-spacing: .08em; text-transform: uppercase; }
+
+    /* A: Evidence Console */
+    .evidence { padding: 24px; background: #0b0d0f; }
+    .evidence::after { content: ""; position: absolute; inset: 0; background-image: linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px); background-size: 32px 32px; pointer-events: none; }
+    .ev-top { display: flex; justify-content: space-between; color: #66e6c1; font: 600 7px ui-monospace, monospace; letter-spacing: .13em; text-transform: uppercase; }
+    .ev-title { position: absolute; z-index: 1; left: 24px; bottom: 25px; width: 66%; font-size: clamp(22px, 2.25vw, 37px); line-height: .95; letter-spacing: -.05em; }
+    .ev-title em { color: #66e6c1; font-style: normal; }
+    .ev-docs { position: absolute; z-index: 1; right: 20px; top: 53px; width: 29%; }
+    .doc { margin-bottom: 7px; padding: 9px; border: 1px solid rgba(102,230,193,.35); background: rgba(102,230,193,.05); }
+    .doc b { display: block; color: #d8fff3; font: 600 6px ui-monospace, monospace; text-transform: uppercase; }
+    .doc span { display: block; height: 3px; margin-top: 5px; background: rgba(255,255,255,.15); }
+    .doc span:last-child { width: 68%; }
+
+    /* B: Classical Intelligence */
+    .classical { padding: 24px; background: #e7dfce; color: #191c24; }
+    .classical::before { content: "Α"; position: absolute; right: -18px; bottom: -75px; color: rgba(25,28,36,.07); font: 500 270px Georgia, serif; }
+    .cl-rule { width: 100%; height: 1px; background: #191c24; }
+    .cl-kicker { margin-top: 11px; color: #315fbe; font: 700 7px ui-monospace, monospace; letter-spacing: .16em; text-transform: uppercase; }
+    .cl-title { width: 82%; margin-top: 25px; font: 400 clamp(23px, 2.4vw, 39px)/.98 Georgia, serif; letter-spacing: -.035em; }
+    .cl-title i { color: #315fbe; }
+    .cl-note { position: absolute; left: 24px; bottom: 23px; width: 58%; padding-left: 9px; border-left: 2px solid #315fbe; font: 600 7px/1.4 ui-monospace, monospace; text-transform: uppercase; }
+
+    /* C: Mission Control */
+    .mission { padding: 24px; background: radial-gradient(circle at 78% 50%, #153955 0, #09111b 28%, #050609 68%); }
+    .mission::before { content: ""; position: absolute; width: 175px; height: 175px; right: -25px; top: 18px; border: 1px solid rgba(94,221,255,.4); border-radius: 50%; box-shadow: inset 18px -12px 35px rgba(65,150,255,.18), 0 0 50px rgba(65,150,255,.08); }
+    .mi-kicker { color: #6ee7ff; font: 600 7px ui-monospace, monospace; letter-spacing: .14em; text-transform: uppercase; }
+    .mi-title { position: absolute; z-index: 1; left: 24px; bottom: 38px; width: 78%; font-size: clamp(23px, 2.45vw, 40px); line-height: .94; letter-spacing: -.05em; }
+    .mi-title span { color: #6ee7ff; }
+    .mi-terminal { position: absolute; right: 20px; bottom: 20px; width: 34%; padding: 9px; border: 1px solid rgba(110,231,255,.45); background: rgba(3,14,20,.72); color: #6ee7ff; font: 500 6px/1.6 ui-monospace, monospace; box-shadow: 0 0 25px rgba(110,231,255,.08); }
+    .hint { margin: 24px 2px 0; color: #747774; font-size: 13px; }
+    @media (max-width: 950px) { .grid { grid-template-columns: 1fr; } .meta p { min-height: 0; } }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="eyebrow">Aristóteles / Pitch de hackatón</div>
+    <h1>¿Qué dirección visual debe sostener la historia?</h1>
+    <p class="intro">Las tres opciones usan el mismo contenido; cambia la personalidad que percibirá el jurado.</p>
+
+    <div class="grid">
+      <button class="choice" data-choice="evidence-console" onclick="toggleSelect(this)">
+        <div class="preview evidence">
+          <div class="ev-top"><span>01 / Decisión</span><span>Evidencia verificada</span></div>
+          <div class="ev-title">Decisiones que puedes <em>defender.</em></div>
+          <div class="ev-docs">
+            <div class="doc"><b>Cotización A · p. 04</b><span></span><span></span></div>
+            <div class="doc"><b>Contrato B · p. 12</b><span></span><span></span></div>
+            <div class="doc"><b>Garantía C · p. 02</b><span></span><span></span></div>
+          </div>
+        </div>
+        <div class="meta">
+          <div class="meta-line"><span class="letter">A</span><h2>Evidence Console</h2></div>
+          <p>Editorial oscuro, menta técnica y documentos como protagonistas. Hace visible la trazabilidad sin parecer un dashboard genérico.</p>
+          <span class="tag">Recomendada · clara + creíble</span>
+        </div>
+      </button>
+
+      <button class="choice" data-choice="classical-intelligence" onclick="toggleSelect(this)">
+        <div class="preview classical">
+          <div class="cl-rule"></div>
+          <div class="cl-kicker">Aristóteles / Inteligencia aplicada</div>
+          <div class="cl-title">De documentos dispersos a una decisión <i>justificable.</i></div>
+          <div class="cl-note">Evidencia antes que elocuencia<br>Humano al mando</div>
+        </div>
+        <div class="meta">
+          <div class="meta-line"><span class="letter">B</span><h2>Classical Intelligence</h2></div>
+          <p>Papel cálido, tinta y azul cobalto. Conecta el nombre Aristóteles con pensamiento riguroso y se diferencia de los pitches de IA oscuros.</p>
+          <span class="tag">Distintiva · humana + editorial</span>
+        </div>
+      </button>
+
+      <button class="choice" data-choice="mission-control" onclick="toggleSelect(this)">
+        <div class="preview mission">
+          <div class="mi-kicker">Sistema multiagente / Online</div>
+          <div class="mi-title">Cinco agentes.<br><span>Una decisión trazable.</span></div>
+          <div class="mi-terminal">PLANNER ✓<br>DOCUMENT ✓<br>RESEARCH →<br>CONFIDENCE 0.82</div>
+        </div>
+        <div class="meta">
+          <div class="meta-line"><span class="letter">C</span><h2>Mission Control</h2></div>
+          <p>Espacial, terminal y cian, alineada con la landing actual. Impactante para tecnología, aunque puede competir con la historia del problema.</p>
+          <span class="tag">Cinemática · técnica + inmersiva</span>
+        </div>
+      </button>
+    </div>
+
+    <p class="hint">Selecciona una opción. Puedes cambiar tu elección antes de responder.</p>
+  </main>
+</body>
+</html>

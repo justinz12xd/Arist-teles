@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Storyboard del pitch Aristóteles</title>
+  <style>
+    :root { color-scheme: dark; font-family: Inter, ui-sans-serif, system-ui, sans-serif; background: #080a0b; color: #f3f5f2; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; background: radial-gradient(circle at 50% -20%, rgba(91,225,190,.11), transparent 42rem), #080a0b; }
+    main { width: min(1460px, calc(100% - 44px)); margin: 0 auto; padding: 38px 0 70px; }
+    .eyebrow { color: #68e2bd; font: 700 10px ui-monospace, monospace; letter-spacing: .16em; text-transform: uppercase; }
+    h1 { margin: 10px 0 8px; font-size: clamp(32px, 4.3vw, 62px); line-height: .98; letter-spacing: -.05em; font-weight: 540; }
+    .intro { margin: 0 0 28px; color: #939a96; font-size: 15px; }
+    .slides { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+    .slide-wrap { min-width: 0; }
+    .slide-num { margin: 0 0 7px 3px; color: #68706c; font: 600 9px ui-monospace, monospace; letter-spacing: .12em; text-transform: uppercase; }
+    .slide { position: relative; aspect-ratio: 16/9; overflow: hidden; padding: 26px; border: 1px solid rgba(255,255,255,.12); background: #0c0f10; box-shadow: 0 18px 60px rgba(0,0,0,.26); }
+    .slide::before { content: ""; position: absolute; inset: 0; background-image: linear-gradient(rgba(255,255,255,.022) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.022) 1px, transparent 1px); background-size: 34px 34px; pointer-events: none; }
+    .kicker { position: relative; z-index: 1; color: #68e2bd; font: 700 7px ui-monospace, monospace; letter-spacing: .15em; text-transform: uppercase; }
+    .folio { position: absolute; z-index: 2; right: 22px; top: 22px; color: #56605b; font: 600 7px ui-monospace, monospace; }
+    .headline { position: relative; z-index: 1; max-width: 82%; margin-top: 16px; font-size: clamp(20px, 2.25vw, 36px); line-height: .98; letter-spacing: -.05em; font-weight: 550; }
+    .headline em { color: #68e2bd; font-style: normal; }
+    .small { color: #a4aaa6; font-size: clamp(8px, .8vw, 12px); line-height: 1.5; }
+    .bottom { position: absolute; z-index: 1; left: 26px; right: 26px; bottom: 24px; }
+    .pill { display: inline-flex; align-items: center; gap: 5px; padding: 5px 8px; border: 1px solid rgba(104,226,189,.4); color: #b8f9e5; font: 700 6px ui-monospace, monospace; letter-spacing: .1em; text-transform: uppercase; }
+    .dot { width: 4px; height: 4px; border-radius: 50%; background: #68e2bd; box-shadow: 0 0 8px #68e2bd; }
+
+    .cover-title { position: absolute; z-index: 1; left: 26px; bottom: 45px; max-width: 72%; font-size: clamp(28px, 3.7vw, 58px); line-height: .88; letter-spacing: -.065em; font-weight: 550; }
+    .cover-title span { color: #68e2bd; }
+    .cover-docs { position: absolute; z-index: 1; width: 30%; right: 22px; top: 60px; transform: rotate(2deg); }
+    .paper { height: 42px; margin-bottom: 7px; padding: 8px; border: 1px solid rgba(104,226,189,.25); background: rgba(104,226,189,.04); }
+    .paper b { display: block; color: #c6f9ea; font: 600 6px ui-monospace, monospace; }
+    .line { height: 2px; margin-top: 5px; background: rgba(255,255,255,.14); }
+    .line.short { width: 65%; }
+
+    .problem-grid { position: absolute; z-index: 1; left: 26px; right: 26px; bottom: 24px; display: grid; grid-template-columns: 1.2fr .8fr; gap: 13px; }
+    .issues { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+    .issue { padding: 9px; border-top: 1px solid rgba(104,226,189,.38); background: rgba(255,255,255,.025); color: #b8bfbb; font-size: clamp(7px, .67vw, 10px); }
+    .chaos { position: relative; min-height: 80px; }
+    .chaos .sheet { position: absolute; width: 60%; height: 62px; right: 15%; border: 1px solid rgba(255,255,255,.18); background: #15191a; }
+    .chaos .sheet:nth-child(1) { transform: translate(-16px, 9px) rotate(-8deg); }
+    .chaos .sheet:nth-child(2) { transform: translate(10px, 2px) rotate(7deg); }
+
+    .transformation { position: absolute; z-index: 1; left: 26px; right: 26px; bottom: 25px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px; }
+    .state { padding: 13px; border: 1px solid rgba(255,255,255,.12); min-height: 82px; }
+    .state.good { border-color: rgba(104,226,189,.42); background: rgba(104,226,189,.04); }
+    .state b { display: block; margin-bottom: 8px; font-size: clamp(10px, 1vw, 15px); }
+    .state p { margin: 0; color: #868e89; font-size: clamp(7px, .68vw, 10px); line-height: 1.45; }
+    .arrow { color: #68e2bd; font-size: 20px; }
+
+    .flow { position: absolute; z-index: 1; left: 26px; right: 26px; bottom: 25px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+    .step { min-height: 83px; padding: 9px; border-top: 2px solid #68e2bd; background: rgba(255,255,255,.035); }
+    .step span { color: #68e2bd; font: 700 7px ui-monospace, monospace; }
+    .step b { display: block; margin-top: 10px; font-size: clamp(8px, .8vw, 12px); line-height: 1.1; }
+
+    .demo-grid { position: absolute; z-index: 1; left: 26px; right: 26px; bottom: 24px; display: grid; grid-template-columns: .8fr 1fr 1.15fr; gap: 7px; }
+    .screen { height: 93px; padding: 9px; border: 1px solid rgba(255,255,255,.13); background: #111516; }
+    .screen-label { color: #68716c; font: 700 6px ui-monospace, monospace; text-transform: uppercase; }
+    .upload { display: grid; place-items: center; height: 55px; margin-top: 8px; border: 1px dashed rgba(104,226,189,.35); color: #68e2bd; font: 700 7px ui-monospace, monospace; }
+    .criterion { display: flex; justify-content: space-between; margin-top: 7px; padding-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,.1); color: #afb7b2; font-size: 7px; }
+    .result { margin-top: 7px; padding: 7px; background: rgba(104,226,189,.08); }
+    .result b { color: #bdf9e7; font-size: 9px; }
+    .citation { margin-top: 5px; color: #78817c; font: 600 6px ui-monospace, monospace; }
+
+    .agents { position: absolute; z-index: 1; left: 26px; right: 26px; bottom: 23px; display: grid; grid-template-columns: 1fr 1.1fr 1fr; gap: 7px; align-items: stretch; }
+    .agent { display: grid; place-items: center; min-height: 44px; padding: 7px; border: 1px solid rgba(104,226,189,.28); color: #d9f8ee; font: 700 7px ui-monospace, monospace; text-align: center; text-transform: uppercase; }
+    .agent.planner { grid-row: span 2; background: rgba(104,226,189,.07); }
+    .agent.decision { grid-row: span 2; border-color: #68e2bd; }
+    .agent-stack { display: grid; gap: 6px; }
+    .tech-line { grid-column: 1 / -1; padding-top: 7px; border-top: 1px solid rgba(255,255,255,.12); color: #727b76; font: 600 6px ui-monospace, monospace; text-align: center; text-transform: uppercase; }
+
+    .trust { position: absolute; z-index: 1; left: 26px; right: 26px; bottom: 24px; display: grid; grid-template-columns: 1.25fr .75fr; gap: 12px; }
+    .bars { display: grid; gap: 7px; }
+    .bar-row { display: grid; grid-template-columns: 1fr 2.2fr auto; gap: 7px; align-items: center; color: #aeb5b1; font-size: 7px; }
+    .track { height: 5px; background: rgba(255,255,255,.09); }
+    .fill { height: 100%; background: #68e2bd; }
+    .guardrails { padding: 10px; border: 1px solid rgba(255,255,255,.12); }
+    .guardrails b { color: #68e2bd; font-size: 10px; }
+    .guardrails p { margin: 6px 0 0; color: #8f9893; font-size: 7px; line-height: 1.45; }
+
+    .roadmap { position: absolute; z-index: 1; left: 26px; right: 26px; bottom: 25px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .now, .next { min-height: 72px; padding: 10px; border-top: 1px solid rgba(255,255,255,.18); }
+    .next { border-color: #68e2bd; background: rgba(104,226,189,.04); }
+    .roadmap span { color: #6d7772; font: 700 6px ui-monospace, monospace; text-transform: uppercase; }
+    .roadmap b { display: block; margin-top: 8px; font-size: clamp(9px, .9vw, 14px); }
+    .roadmap p { margin: 5px 0 0; color: #87908b; font-size: 7px; line-height: 1.4; }
+
+    .approval { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-top: 24px; padding: 18px 20px; border: 1px solid rgba(104,226,189,.25); background: rgba(104,226,189,.04); }
+    .approval p { margin: 0; color: #a7afaa; font-size: 13px; }
+    .approve { flex: 0 0 auto; padding: 11px 15px; border: 1px solid #68e2bd; background: #68e2bd; color: #07110e; font: 800 10px ui-monospace, monospace; letter-spacing: .08em; text-transform: uppercase; cursor: pointer; }
+    .approve.selected { box-shadow: 0 0 0 3px rgba(104,226,189,.2); }
+    @media (max-width: 900px) { .slides { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="eyebrow">Storyboard / 8 diapositivas / 5 minutos</div>
+    <h1>De una decisión difícil a una decisión defendible.</h1>
+    <p class="intro">Cada miniatura muestra la jerarquía y el mensaje principal, no el detalle final.</p>
+
+    <div class="slides">
+      <div class="slide-wrap">
+        <p class="slide-num">01 · Apertura · 20 s</p>
+        <div class="slide">
+          <div class="kicker">Aristóteles / Sistema de apoyo a decisiones</div><div class="folio">01 / 08</div>
+          <div class="cover-title">Decisiones respaldadas por <span>evidencia.</span></div>
+          <div class="cover-docs"><div class="paper"><b>COTIZACIÓN · P.04</b><div class="line"></div><div class="line short"></div></div><div class="paper"><b>CONTRATO · P.12</b><div class="line"></div><div class="line short"></div></div><div class="paper"><b>GARANTÍA · P.02</b><div class="line"></div><div class="line short"></div></div></div>
+          <div class="bottom"><span class="pill"><i class="dot"></i> Humano al mando</span></div>
+        </div>
+      </div>
+
+      <div class="slide-wrap">
+        <p class="slide-num">02 · Problema · 35 s</p>
+        <div class="slide">
+          <div class="kicker">El problema</div><div class="folio">02 / 08</div>
+          <div class="headline">La información crítica está donde menos ayuda: <em>dispersa.</em></div>
+          <div class="problem-grid"><div class="issues"><div class="issue">Criterios inconsistentes</div><div class="issue">Cláusulas y costos omitidos</div><div class="issue">Datos faltantes o contradictorios</div><div class="issue">Decisiones difíciles de justificar</div></div><div class="chaos"><div class="sheet"></div><div class="sheet"></div><div class="sheet"></div></div></div>
+        </div>
+      </div>
+
+      <div class="slide-wrap">
+        <p class="slide-num">03 · Propuesta · 30 s</p>
+        <div class="slide">
+          <div class="kicker">La propuesta</div><div class="folio">03 / 08</div>
+          <div class="headline">Aristóteles organiza la evidencia. <em>Tú decides.</em></div>
+          <div class="transformation"><div class="state"><b>Antes</b><p>PDFs, imágenes, tablas y anexos revisados manualmente.</p></div><div class="arrow">→</div><div class="state good"><b>Después</b><p>Comparación uniforme, riesgos visibles y citas localizadas.</p></div></div>
+        </div>
+      </div>
+
+      <div class="slide-wrap">
+        <p class="slide-num">04 · Flujo · 45 s</p>
+        <div class="slide">
+          <div class="kicker">Cómo funciona</div><div class="folio">04 / 08</div>
+          <div class="headline">Cinco pasos. Una decisión <em>auditable.</em></div>
+          <div class="flow"><div class="step"><span>01</span><b>Cargar documentos</b></div><div class="step"><span>02</span><b>Preparar evidencia</b></div><div class="step"><span>03</span><b>Confirmar criterios</b></div><div class="step"><span>04</span><b>Comparar alternativas</b></div><div class="step"><span>05</span><b>Revisar decisión</b></div></div>
+        </div>
+      </div>
+
+      <div class="slide-wrap">
+        <p class="slide-num">05 · Storyboard de demo · 55 s</p>
+        <div class="slide">
+          <div class="kicker">Experiencia objetivo · MVP en desarrollo</div><div class="folio">05 / 08</div>
+          <div class="headline">De los archivos a la <em>fuente exacta.</em></div>
+          <div class="demo-grid"><div class="screen"><div class="screen-label">Expediente</div><div class="upload">+ PDF / IMAGEN</div></div><div class="screen"><div class="screen-label">Criterios confirmados</div><div class="criterion"><span>Precio</span><b>30%</b></div><div class="criterion"><span>Garantía</span><b>25%</b></div><div class="criterion"><span>Riesgo</span><b>20%</b></div></div><div class="screen"><div class="screen-label">Recomendación</div><div class="result"><b>Proveedor B</b><div class="citation">Garantía de 24 meses · Contrato B, p. 8</div><div class="citation">Confianza alta · 0.82</div></div></div></div>
+        </div>
+      </div>
+
+      <div class="slide-wrap">
+        <p class="slide-num">06 · Diferenciador técnico · 45 s</p>
+        <div class="slide">
+          <div class="kicker">Arquitectura multiagente</div><div class="folio">06 / 08</div>
+          <div class="headline">Especialistas autónomos. Controles <em>reproducibles.</em></div>
+          <div class="agents"><div class="agent planner">Planner<br>Agent</div><div class="agent-stack"><div class="agent">Document</div><div class="agent">Research</div><div class="agent">Comparison</div></div><div class="agent decision">Decision<br>Agent</div><div class="tech-line">Deep Agents + herramientas deterministas + InsForge + RAG</div></div>
+        </div>
+      </div>
+
+      <div class="slide-wrap">
+        <p class="slide-num">07 · Confianza y seguridad · 35 s</p>
+        <div class="slide">
+          <div class="kicker">Confianza calculada, no improvisada</div><div class="folio">07 / 08</div>
+          <div class="headline">Si la evidencia no alcanza, el sistema <em>se abstiene.</em></div>
+          <div class="trust"><div class="bars"><div class="bar-row"><span>Cobertura</span><div class="track"><div class="fill" style="width:40%"></div></div><b>40%</b></div><div class="bar-row"><span>Citas</span><div class="track"><div class="fill" style="width:30%"></div></div><b>30%</b></div><div class="bar-row"><span>Consistencia</span><div class="track"><div class="fill" style="width:20%"></div></div><b>20%</b></div><div class="bar-row"><span>Extracción</span><div class="track"><div class="fill" style="width:10%"></div></div><b>10%</b></div></div><div class="guardrails"><b>needs_review</b><p>Contradicciones críticas reducen la confianza. RLS aísla cada expediente. Las etapas se reanudan desde checkpoints.</p></div></div>
+        </div>
+      </div>
+
+      <div class="slide-wrap">
+        <p class="slide-num">08 · Cierre · 35 s</p>
+        <div class="slide">
+          <div class="kicker">El siguiente paso</div><div class="folio">08 / 08</div>
+          <div class="headline">No decide por ti. Te permite <em>decidir mejor.</em></div>
+          <div class="roadmap"><div class="now"><span>Ahora</span><b>Producto y arquitectura definidos</b><p>Flujo, agentes, seguridad, contratos y criterios de aceptación.</p></div><div class="next"><span>Siguiente hito</span><b>MVP evaluado con evidencia real</b><p>Ingesta, RAG, orquestación y reporte contra un dataset dorado.</p></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="approval">
+      <p>Si esta secuencia comunica correctamente el proyecto, apruébala para convertirla en PPTX y PDF con notas del presentador.</p>
+      <button class="approve" data-choice="storyboard-approved" onclick="toggleSelect(this)">Aprobar storyboard</button>
+    </div>
+  </main>
+</body>
+</html>

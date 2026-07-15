@@ -27,6 +27,7 @@ type Criterion = {
 
 type PagePreview = {
   page_number: number;
+  document?: string;
   method: string;
   quality_score: number;
   preview: string;
@@ -46,7 +47,7 @@ type AgentResult = {
     quality_score: number;
     previews: PagePreview[];
   };
-  stages: Stage[];
+  stages: Stage[] | Record<string, Stage>;
   criteria: Criterion[];
   research: {
     keywords: string[];
@@ -72,21 +73,28 @@ type AgentResult = {
 
 const STAGE_ICONS = [Brain, FileText, SearchCheck, Scale, CheckCircle2];
 
-function buildFallbackResult(objective: string, file: File): AgentResult {
-  const filename = file.name || "documento.pdf";
+function normalizeStages(stages: AgentResult["stages"] | null | undefined): Stage[] | null {
+  if (!stages) {
+    return null;
+  }
+  return Array.isArray(stages) ? stages : Object.values(stages);
+}
+
+function buildFallbackResult(objective: string, files: File[]): AgentResult {
+  const filename = files.map((file) => file.name).join(", ") || "documentos.pdf";
   return {
     objective,
     document: {
       filename,
-      pages: 1,
-      quality_score: 0.58,
+      pages: files.length || 1,
+      quality_score: 0.24,
       previews: [
         {
           page_number: 1,
           method: "browser-demo",
-          quality_score: 0.58,
+          quality_score: 0.24,
           preview:
-            "Vista demo local. Inicia el backend con ARISTOTELES_API_URL para extraer texto real del PDF.",
+            "Modo demo local. Inicia el backend con ARISTOTELES_API_URL para extraer texto real de los PDFs.",
         },
       ],
     },
@@ -101,7 +109,7 @@ function buildFallbackResult(objective: string, file: File): AgentResult {
         id: "document",
         agent: "Document Agent",
         status: "needs_review",
-        summary: "PDF recibido en navegador; falta backend para extraccion real.",
+        summary: `${files.length || 1} archivo(s) recibido(s); falta backend para extraccion real.`,
       },
       {
         id: "research",
@@ -138,14 +146,14 @@ function buildFallbackResult(objective: string, file: File): AgentResult {
       outcome: "needs_review",
       recommended_provider_id: null,
       summary: "Subida completada, pero falta conectar el backend para analizar contenido real.",
-      risk_items: ["Configurar ARISTOTELES_API_URL y ejecutar FastAPI para extraer el PDF."],
+      risk_items: ["Configurar ARISTOTELES_API_URL y ejecutar FastAPI para extraer los PDFs."],
       confidence: {
         score: 0.24,
         band: "low",
         coverage: 0.2,
         citation_support: 0,
         consistency: 0.25,
-        extraction_quality: 0.58,
+        extraction_quality: 0.24,
       },
       evidence_ids: [],
     },
@@ -167,23 +175,23 @@ export function AgentConsole() {
   const [objective, setObjective] = useState(
     "Comparar proveedores y recomendar la opcion con mejor respaldo documental.",
   );
-  const [file, setFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
   const [result, setResult] = useState<AgentResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isRunning, setIsRunning] = useState(false);
 
-  const canRun = useMemo(() => objective.trim().length > 0 && file && !isRunning, [file, isRunning, objective]);
+  const canRun = useMemo(() => objective.trim().length > 0 && files.length > 0 && !isRunning, [files, isRunning, objective]);
+  const visibleStages = normalizeStages(result?.stages);
 
   function onFileChange(event: ChangeEvent<HTMLInputElement>) {
-    const nextFile = event.target.files?.[0] ?? null;
-    setFile(nextFile);
+    setFiles(Array.from(event.target.files ?? []));
     setResult(null);
     setError(null);
   }
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!file || !objective.trim()) {
+    if (!files.length || !objective.trim()) {
       return;
     }
 
@@ -192,7 +200,9 @@ export function AgentConsole() {
 
     const formData = new FormData();
     formData.set("objective", objective.trim());
-    formData.set("file", file);
+    for (const file of files) {
+      formData.append("files", file);
+    }
 
     try {
       const response = await fetch("/api/agent-demo", {
@@ -204,8 +214,8 @@ export function AgentConsole() {
       }
       setResult((await response.json()) as AgentResult);
     } catch {
-      setResult(buildFallbackResult(objective.trim(), file));
-      setError("Usando modo demo local. Inicia el backend para extraer texto real del PDF.");
+      setResult(buildFallbackResult(objective.trim(), files));
+      setError("Usando modo demo local. Inicia el backend para extraer texto real de los PDFs.");
     } finally {
       setIsRunning(false);
     }
@@ -217,11 +227,11 @@ export function AgentConsole() {
         <section className="glass p-6 lg:sticky lg:top-24 lg:self-start">
           <p className="section-label">[ consola de agentes ]</p>
           <h1 className="mt-4 max-w-xl text-4xl font-medium leading-tight text-white md:text-5xl">
-            Ejecuta un analisis con PDF.
+            Ejecuta un analisis con PDFs.
           </h1>
           <p className="mt-4 max-w-2xl text-sm leading-6 text-[var(--primary-60)]">
-            Sube un PDF, define el objetivo y corre el flujo Planner, Document, Research,
-            Comparison y Decision. Sin credenciales usa una ruta demo segura.
+            Sube uno o varios PDFs, define el objetivo y corre el flujo Planner, Document,
+            Research, Comparison y Decision.
           </p>
 
           <form onSubmit={onSubmit} className="mt-8 space-y-5">
@@ -238,13 +248,23 @@ export function AgentConsole() {
             <label className="block rounded-lg border border-dashed border-[rgb(34_211_238/0.35)] bg-[rgb(34_211_238/0.05)] p-5 transition hover:bg-[rgb(34_211_238/0.08)]">
               <span className="flex items-center gap-3 text-sm font-medium text-white">
                 <Upload size={18} className="text-[var(--accent-cyan)]" />
-                {file ? file.name : "Subir PDF"}
+                {files.length ? `${files.length} PDF seleccionado(s)` : "Subir PDFs"}
               </span>
               <span className="mt-2 block text-xs text-[var(--primary-44)]">
-                PDF nativo recomendado para extraer texto con mayor calidad.
+                PDFs nativos recomendados para extraer texto con mayor calidad.
               </span>
-              <input type="file" accept="application/pdf,.pdf" className="sr-only" onChange={onFileChange} />
+              <input type="file" accept="application/pdf,.pdf" multiple className="sr-only" onChange={onFileChange} />
             </label>
+
+            {files.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {files.map((file) => (
+                  <span key={`${file.name}-${file.size}`} className="rounded-full border border-white/10 px-3 py-1 text-xs text-[var(--primary-60)]">
+                    {file.name}
+                  </span>
+                ))}
+              </div>
+            )}
 
             {error && (
               <div className="flex gap-3 rounded-lg border border-amber-300/20 bg-amber-300/10 p-3 text-xs leading-5 text-amber-100">
@@ -270,11 +290,11 @@ export function AgentConsole() {
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <p className="section-label">pipeline</p>
                 <span className="text-xs text-[var(--primary-44)]">
-                  {result ? result.document.filename : "esperando PDF"}
+                  {result ? result.document.filename : "esperando PDFs"}
                 </span>
               </div>
               <div className="mt-5 grid gap-3">
-                {(result?.stages ?? [
+                {(visibleStages ?? [
                   "Planner Agent",
                   "Document Agent",
                   "Research Agent",
@@ -309,7 +329,7 @@ export function AgentConsole() {
             <>
               <div className="grid gap-6 xl:grid-cols-2">
                 <article className="glass p-5">
-                  <p className="section-label">documento</p>
+                  <p className="section-label">documentos</p>
                   <div className="mt-4 flex items-end justify-between gap-4">
                     <div>
                       <h2 className="text-xl font-medium text-white">{result.document.pages} paginas</h2>
@@ -320,10 +340,10 @@ export function AgentConsole() {
                     <FileText className="text-[var(--accent-cyan)]" size={24} />
                   </div>
                   <div className="mt-5 space-y-3">
-                    {result.document.previews.slice(0, 3).map((page) => (
-                      <div key={page.page_number} className="rounded-lg border border-[var(--primary-4)] p-3">
+                    {result.document.previews.slice(0, 4).map((page, index) => (
+                      <div key={`${page.document ?? "document"}-${page.page_number}-${index}`} className="rounded-lg border border-[var(--primary-4)] p-3">
                         <div className="flex justify-between gap-3 text-xs text-[var(--primary-44)]">
-                          <span>pagina {page.page_number}</span>
+                          <span>{page.document ? `${page.document} · ` : ""}pagina {page.page_number}</span>
                           <span>{page.method}</span>
                         </div>
                         <p className="mt-2 text-sm leading-6 text-[var(--primary-80)]">{page.preview}</p>

@@ -32,11 +32,13 @@ def extract_pdf(data: bytes) -> list[ExtractedPage]:
                 pixmap = page.get_pixmap(dpi=180, alpha=False)
                 image = Image.frombytes("RGB", (pixmap.width, pixmap.height), pixmap.samples)
                 try:
-                    text = image_to_string(image, lang="spa").strip()
+                    ocr_text = image_to_string(image, lang="spa").strip()
                 except TesseractNotFoundError:
-                    text = ""
-                score = _quality(text)
-                method = "ocr"
+                    ocr_text = ""
+                if ocr_text:
+                    text = ocr_text
+                    score = _quality(text)
+                    method = "ocr"
             pages.append(ExtractedPage(index, text, method, score))
     return pages
 
