@@ -41,7 +41,7 @@ type ChatMessage = {
 };
 
 type HistoryItem = {
-  id?: string;
+  id: string;
   title: string;
   preview: string;
   active: boolean;
@@ -49,10 +49,10 @@ type HistoryItem = {
 };
 
 const CHAT_HISTORY = [
-  { title: "Renovacion de equipos", preview: "Proveedor B lidera; 2 riesgos pendientes.", active: true },
-  { title: "Contrato de soporte", preview: "Clausula de penalidad requiere revision.", active: false },
-  { title: "Compra de licencias", preview: "Falta confirmar renovacion automatica.", active: false },
-  { title: "Comparacion logistica", preview: "Opcion C tiene entrega parcial.", active: false },
+  { id: "preset-renovacion-equipos", title: "Renovacion de equipos", preview: "Proveedor B lidera; 2 riesgos pendientes.", active: true },
+  { id: "preset-contrato-soporte", title: "Contrato de soporte", preview: "Clausula de penalidad requiere revision.", active: false },
+  { id: "preset-compra-licencias", title: "Compra de licencias", preview: "Falta confirmar renovacion automatica.", active: false },
+  { id: "preset-comparacion-logistica", title: "Comparacion logistica", preview: "Opcion C tiene entrega parcial.", active: false },
 ];
 
 const NAV = [
@@ -623,10 +623,10 @@ export function ChatExperience() {
             <div className="space-y-1">
               {visibleHistory.map((chat) => (
                 <button
-                  key={chat.title}
+                  key={chat.id}
                   type="button"
                   onClick={() => {
-                    if (chat.local && chat.id) {
+                    if (chat.local) {
                       openLocalChat(chat.id);
                     }
                   }}
