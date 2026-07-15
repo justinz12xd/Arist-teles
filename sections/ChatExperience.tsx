@@ -99,8 +99,8 @@ export function ChatExperience() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const canSend = useMemo(
-    () => question.trim().length > 0 && files.length > 0 && !isSending,
-    [files.length, isSending, question],
+    () => question.trim().length > 0 && !isSending,
+    [isSending, question],
   );
 
   function onFilesChange(event: ChangeEvent<HTMLInputElement>) {
@@ -125,6 +125,22 @@ export function ChatExperience() {
     setQuestion("");
     setIsSending(true);
     setError(null);
+
+    if (!files.length) {
+      setMessages((current) => [
+        ...current,
+        {
+          id: crypto.randomUUID(),
+          role: "assistant",
+          content:
+            cleanQuestion.toLowerCase().trim() === "hola"
+              ? "Hola. Puedo ayudarte a revisar documentos; adjunta uno o varios PDFs para responder con evidencia."
+              : "Puedo responder mejor con evidencia si adjuntas uno o varios PDFs. Sube documentos y vuelve a preguntar.",
+        },
+      ]);
+      setIsSending(false);
+      return;
+    }
 
     const formData = new FormData();
     formData.set("objective", cleanQuestion);
