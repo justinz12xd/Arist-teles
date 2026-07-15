@@ -94,9 +94,10 @@ La web queda disponible en `http://localhost:3000` y la salud del backend en
 - `frontend` sirve Next.js en `/`.
 - `backend` sirve FastAPI y se publica bajo `/svc/api/*`.
 
-Vercel construye `Dockerfile.vercel` y `backend/Dockerfile.vercel`. El Route Handler del
-frontend utiliza `BACKEND_URL`, que Vercel Services inyecta automaticamente, y conserva
-`ARISTOTELES_API_URL` como override para despliegues separados.
+Vercel construye `Dockerfile.vercel` y `backend/Dockerfile.vercel`. El servicio `frontend`
+declara un binding hacia `backend` para recibir `BACKEND_URL` internamente, mientras el
+servicio `backend` remueve el prefijo `/svc/api` antes de llegar a FastAPI. El Route Handler
+conserva `ARISTOTELES_API_URL` como override para despliegues separados.
 
 Antes del primer deploy:
 
