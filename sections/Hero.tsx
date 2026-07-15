@@ -14,7 +14,7 @@ const STATUS = [
 
 export function Hero() {
   return (
-    <section className="relative flex min-h-screen flex-col justify-between px-6 pb-16 pt-[calc(var(--header-h)+3rem)]">
+    <section className="relative flex min-h-screen flex-col justify-between px-4 pb-12 pt-[calc(var(--header-h)+3rem+env(safe-area-inset-top))] sm:px-6 sm:pb-16">
       <div
         className="pointer-events-none absolute inset-0"
         style={{
@@ -33,7 +33,7 @@ export function Hero() {
           oráculo de evidencia · liceo digital
         </motion.p>
         <motion.h1
-          className="hellenic-title mx-auto mt-4 max-w-5xl text-[clamp(3.2rem,9vw,8.5rem)] font-medium leading-[0.9] tracking-[-0.07em] text-white"
+          className="hellenic-title mx-auto mt-4 max-w-5xl break-words text-[clamp(2.75rem,16vw,8.5rem)] font-medium leading-[0.9] tracking-[-0.04em] text-white sm:text-[clamp(3.2rem,9vw,8.5rem)]"
           initial={{ opacity: 0, y: 10, filter: "blur(6px)" }}
           animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
           transition={{ delay: 0.25, duration: 1, ease: EASE_OUT_QUINT }}
@@ -64,15 +64,15 @@ export function Hero() {
         transition={{ delay: 0.9, duration: 0.9, ease: EASE_OUT_QUINT }}
       >
         <div className="crt hellenic-frame overflow-hidden rounded-2xl p-5 pt-8 md:p-7 md:pt-10">
-          <div className="crt-content grid gap-5 md:grid-cols-[0.85fr_1.15fr]">
+          <div className="crt-content grid min-w-0 gap-5 md:grid-cols-[0.85fr_1.15fr]">
             <div>
               <p className="section-label">ágora / proveedores</p>
               <div className="mt-5 space-y-2 font-mono text-xs text-[var(--primary-80)]">
-                <p>&gt; descifrando papiros ....... ok</p>
+                <p className="break-words">&gt; descifrando papiros ....... ok</p>
                 <p>&gt; pesando garantías ......... ok</p>
-                <p>&gt; invocando riesgos ......... 2 hallazgos</p>
+                <p className="break-words">&gt; invocando riesgos ......... 2 hallazgos</p>
               </div>
-              <div className="mt-6 grid grid-cols-3 gap-2">
+              <div className="mt-6 grid grid-cols-1 gap-2 min-[360px]:grid-cols-3">
                 {STATUS.map((item) => (
                   <div key={item.label} className="border border-[rgb(34_211_238/0.18)] bg-black/20 p-3">
                     <p className="text-xl font-medium text-white">{item.value}</p>
@@ -106,7 +106,7 @@ export function Hero() {
           {TAGLINE_WORDS.map((word, i) => (
             <motion.span
               key={i}
-              className="inline-block whitespace-pre"
+              className="inline whitespace-normal"
               initial={{ opacity: 0, y: 6, color: "#d8b15f" }}
               animate={{ opacity: 1, y: 0, color: "#ffffff" }}
               transition={{
@@ -122,7 +122,7 @@ export function Hero() {
         </h2>
 
         <motion.div
-          className="flex flex-wrap items-center gap-4"
+          className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4"
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1.6, duration: 0.9, ease: EASE_OUT_QUINT }}

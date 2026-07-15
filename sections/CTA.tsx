@@ -60,7 +60,7 @@ export function CTA() {
         <ScrollReveal delay={0.3}>
           <a
             href="/chat"
-            className="mt-10 inline-block rounded-full bg-[var(--accent-marble)] px-10 py-4 text-base font-medium text-black transition-all duration-300 hover:scale-[1.03] hover:shadow-[0_0_60px_rgb(216_177_95/0.45)]"
+            className="mt-10 inline-flex min-h-11 items-center justify-center rounded-full bg-[var(--accent-marble)] px-10 py-4 text-center text-base font-medium text-black transition-[transform,box-shadow,background-color,color] duration-300 hover:scale-[1.03] hover:shadow-[0_0_60px_rgb(216_177_95/0.45)]"
             style={{ transitionTimingFunction: "var(--ease-out-expo)" }}
           >
             Consultar el oráculo

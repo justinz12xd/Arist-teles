@@ -9,7 +9,7 @@ type Props = {
 
 export function Button({ href, variant = "primary", children, ariaLabel }: Props) {
   const base =
-    "inline-flex items-center gap-2 rounded-full px-6 py-3 text-sm font-medium transition-all duration-200 motion-safe:hover:scale-[1.02] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--accent-cyan)]";
+    "inline-flex min-h-11 items-center justify-center gap-2 rounded-full px-6 py-3 text-center text-sm font-medium transition-[transform,box-shadow,background-color,color,border-color] duration-200 motion-safe:hover:scale-[1.02] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--accent-cyan)]";
   const styles =
     variant === "primary"
       ? "bg-[var(--accent-marble)] text-black hover:shadow-[0_0_24px_rgb(216_177_95/0.35)]"

@@ -174,7 +174,7 @@ export function AIVoiceInput({
     return (
       <button
         className={cn(
-          "group flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-colors",
+          "group flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--accent-cyan)]",
           submitted
             ? "bg-[rgb(216_177_95/0.18)] text-[var(--accent-cyan)]"
             : "text-[var(--primary-60)] hover:bg-white/10 hover:text-white",
@@ -234,7 +234,7 @@ export function AIVoiceInput({
                 <div
                   key={i}
                   className={cn(
-                    "w-0.5 rounded-full transition-all duration-300",
+                    "w-0.5 rounded-full transition-[height,background-color] duration-300",
                     submitted ? "animate-pulse bg-black/50 dark:bg-white/50" : "h-1 bg-black/10 dark:bg-white/10"
                   )}
                   style={

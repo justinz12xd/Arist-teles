@@ -12,6 +12,7 @@ import {
   Upload,
 } from "lucide-react";
 import { DecisionRoadmap } from "@/components/decision/DecisionRoadmap";
+import { agentDemoUrl } from "@/lib/backend-api";
 import type { DecisionRoadmapData } from "@/lib/aristoteles-contracts";
 
 type Stage = {
@@ -257,7 +258,7 @@ export function AgentConsole() {
     }
 
     try {
-      const response = await fetch("/api/agent-demo", {
+      const response = await fetch(agentDemoUrl(), {
         method: "POST",
         body: formData,
       });
@@ -274,11 +275,11 @@ export function AgentConsole() {
   }
 
   return (
-    <div className="relative mx-auto max-w-7xl px-6 py-24">
+    <div className="relative mx-auto max-w-7xl px-4 py-24 sm:px-6">
       <div className="grid gap-8 lg:grid-cols-[0.86fr_1.14fr]">
-        <section className="glass p-6 lg:sticky lg:top-24 lg:self-start">
+        <section className="glass p-4 sm:p-6 lg:sticky lg:top-24 lg:self-start">
           <p className="section-label">[ consola de agentes ]</p>
-          <h1 className="mt-4 max-w-xl text-4xl font-medium leading-tight text-white md:text-5xl">
+          <h1 className="mt-4 max-w-xl text-3xl font-medium leading-tight text-white sm:text-4xl md:text-5xl">
             Ejecuta un analisis con PDFs.
           </h1>
           <p className="mt-4 max-w-2xl text-sm leading-6 text-[var(--primary-60)]">
@@ -292,7 +293,7 @@ export function AgentConsole() {
               <textarea
                 value={objective}
                 onChange={(event) => setObjective(event.target.value)}
-                className="mt-2 min-h-32 w-full resize-none rounded-lg border border-[var(--primary-12)] bg-black/40 p-4 text-sm leading-6 text-white outline-none transition focus:border-[var(--accent-cyan)]"
+                className="mt-2 min-h-32 w-full resize-none rounded-lg border border-[var(--primary-12)] bg-black/40 p-4 text-sm leading-6 text-white outline-none transition focus:border-[var(--accent-cyan)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--accent-cyan)]" name="objective" autoComplete="off"
                 maxLength={1200}
               />
             </label>
@@ -311,7 +312,7 @@ export function AgentConsole() {
             {files.length > 0 && (
               <div className="flex flex-wrap gap-2">
                 {files.map((file) => (
-                  <span key={`${file.name}-${file.size}`} className="rounded-full border border-white/10 px-3 py-1 text-xs text-[var(--primary-60)]">
+                  <span key={`${file.name}-${file.size}`} className="max-w-full truncate rounded-full border border-white/10 px-3 py-1 text-xs text-[var(--primary-60)]">
                     {file.name}
                   </span>
                 ))}
@@ -328,7 +329,7 @@ export function AgentConsole() {
             <button
               type="submit"
               disabled={!canRun}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-medium text-black transition hover:shadow-[0_0_24px_rgb(34_211_238/0.35)] disabled:cursor-not-allowed disabled:opacity-40"
+              className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-medium text-black transition hover:shadow-[0_0_24px_rgb(34_211_238/0.35)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--accent-cyan)] disabled:cursor-not-allowed disabled:opacity-40"
             >
               {isRunning ? <Loader2 size={17} className="animate-spin" /> : <Brain size={17} />}
               Ejecutar agentes
@@ -337,7 +338,7 @@ export function AgentConsole() {
         </section>
 
         <section className="space-y-6">
-          <div className="crt overflow-hidden rounded-2xl p-5">
+          <div className="crt overflow-hidden rounded-2xl p-4 sm:p-5">
             <div className="crt-content">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <p className="section-label">pipeline</p>

@@ -53,7 +53,21 @@ body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  min-width: 320px;
   overflow-x: hidden;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: rgb(var(--accent-gold-rgb) / 0.18);
+}
+
+html {
+  scroll-padding-top: calc(var(--header-h) + env(safe-area-inset-top));
+}
+
+button,
+a,
+input,
+textarea {
+  min-width: 0;
 }
 
 /* Fondo de escena continua — fallback CSS bajo el canvas 3D */
@@ -248,6 +262,12 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+  }
+
   .float-x, .float-y, .crt::after, .crt-cursor::after {
     animation: none;
   }

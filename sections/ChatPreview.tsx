@@ -27,9 +27,9 @@ export function ChatPreview() {
           <div className="glass hellenic-frame marble-surface overflow-hidden p-4 pt-8 shadow-[0_0_50px_rgb(216_177_95/0.08)]">
             <div className="flex flex-wrap gap-2 border-b border-[var(--primary-4)] pb-4">
               {FILES.map((file) => (
-                <div key={file} className="flex items-center gap-2 rounded-full border border-[var(--primary-12)] px-3 py-1.5 text-xs text-[var(--primary-60)]">
-                  <ScrollText size={13} className="text-[var(--accent-cyan)]" />
-                  {file}
+                <div key={file} className="flex max-w-full items-center gap-2 rounded-full border border-[var(--primary-12)] px-3 py-1.5 text-xs text-[var(--primary-60)]">
+                  <ScrollText size={13} className="shrink-0 text-[var(--accent-cyan)]" />
+                  <span className="min-w-0 truncate">{file}</span>
                 </div>
               ))}
             </div>
@@ -50,10 +50,10 @@ export function ChatPreview() {
               ))}
             </div>
 
-            <div className="flex items-center gap-3 rounded-full border border-[var(--primary-12)] bg-black/30 px-4 py-3">
-              <Paperclip size={16} className="text-[var(--primary-44)]" />
-              <span className="flex-1 text-sm text-[var(--primary-44)]">Consultar al oráculo sobre riesgos, costos o citas…</span>
-              <button className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--accent-marble)] text-black" aria-label="Enviar mensaje">
+            <div className="flex items-center gap-3 rounded-[1.5rem] border border-[var(--primary-12)] bg-black/30 px-3 py-3 sm:rounded-full sm:px-4">
+              <Paperclip size={16} className="shrink-0 text-[var(--primary-44)]" />
+              <span className="min-w-0 flex-1 truncate text-sm text-[var(--primary-44)]">Consultar al oráculo sobre riesgos, costos o citas...</span>
+              <button className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--accent-marble)] text-black focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--accent-cyan)]" aria-label="Enviar mensaje">
                 <Send size={14} />
               </button>
             </div>

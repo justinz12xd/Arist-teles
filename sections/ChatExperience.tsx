@@ -2,9 +2,11 @@
 
 import { AIVoiceInput } from "@/components/ui/ai-voice-input";
 import { DecisionRoadmap } from "@/components/decision/DecisionRoadmap";
+import { agentDemoUrl, chatResearchUrl } from "@/lib/backend-api";
 import type { DecisionRoadmapData } from "@/lib/aristoteles-contracts";
 import {
   ArrowUp,
+  Copy,
   FileText,
   History,
   Library,
@@ -16,8 +18,10 @@ import {
   Scale,
   Search,
   Sparkles,
+  Trash2,
+  X,
 } from "lucide-react";
-import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { ChangeEvent, FormEvent, KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
 
 type AgentResult = {
   mode?: "web" | "documents" | "hybrid";
@@ -81,6 +85,13 @@ const NAV = [
   { icon: History, label: "Historial" },
 ];
 
+const QUICK_PROMPTS = [
+  "Compara las propuestas y dime cual conviene mas",
+  "Resume beneficios y desventajas de cada alternativa",
+  "Que riesgos deberia revisar antes de decidir",
+  "Que datos faltan para tomar una mejor decision",
+];
+
 function normalizeQuestion(value: string) {
   return value
     .toLowerCase()
@@ -105,7 +116,7 @@ function answerWithoutDocuments(question: string) {
   }
 
   if (normalized.includes("backend") || normalized.includes("api")) {
-    return "El backend es FastAPI. La demo del chat usa /api/agent-demo en Next, que reenvia pregunta y PDFs al endpoint /v1/demo/agent para extraer texto y generar una respuesta con evidencia.";
+    return "El backend es FastAPI. El chat no usa rutas API de Next: llama directo a /v1/chat/research para investigar y a /v1/demo/agent para conversar con PDFs.";
   }
 
   if (normalized.includes("document") || normalized.includes("pdf") || normalized.includes("archivo")) {
@@ -162,6 +173,8 @@ export function ChatExperience() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [historySearch, setHistorySearch] = useState("");
+  const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -169,14 +182,53 @@ export function ChatExperience() {
     () => question.trim().length > 0 && !isSending,
     [isSending, question],
   );
+  const visibleHistory = useMemo(() => {
+    const query = normalizeQuestion(historySearch);
+    if (!query) {
+      return CHAT_HISTORY;
+    }
+    return CHAT_HISTORY.filter((chat) =>
+      normalizeQuestion(`${chat.title} ${chat.preview}`).includes(query),
+    );
+  }, [historySearch]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages]);
 
   function onFilesChange(event: ChangeEvent<HTMLInputElement>) {
-    setFiles(Array.from(event.target.files ?? []));
+    const nextFiles = Array.from(event.target.files ?? []);
+    setFiles((current) => {
+      const existing = new Set(current.map((file) => `${file.name}-${file.size}`));
+      return [...current, ...nextFiles.filter((file) => !existing.has(`${file.name}-${file.size}`))];
+    });
     setError(null);
+    event.target.value = "";
+  }
+
+  function removeFile(fileToRemove: File) {
+    setFiles((current) => current.filter((file) => file !== fileToRemove));
+  }
+
+  function startNewChat() {
+    setQuestion("");
+    setFiles([]);
+    setMessages([]);
+    setError(null);
+    setCopiedMessageId(null);
+  }
+
+  async function copyMessage(message: ChatMessage) {
+    await navigator.clipboard?.writeText(message.content);
+    setCopiedMessageId(message.id);
+    window.setTimeout(() => setCopiedMessageId(null), 1400);
+  }
+
+  function onQuestionKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      event.currentTarget.form?.requestSubmit();
+    }
   }
 
   function appendUserMessage(content: string) {
@@ -228,7 +280,7 @@ export function ChatExperience() {
     }
 
     try {
-      const response = await fetch("/api/agent-demo", {
+      const response = await fetch(agentDemoUrl(), {
         method: "POST",
         body: formData,
       });
@@ -269,7 +321,7 @@ export function ChatExperience() {
     }
 
     try {
-      const response = await fetch("/api/research", {
+      const response = await fetch(chatResearchUrl(), {
         method: "POST",
         body: formData,
       });
@@ -288,17 +340,17 @@ export function ChatExperience() {
   }
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-black text-white">
+    <main className="relative min-h-[100svh] overflow-hidden bg-black text-white">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_18%,rgb(216_177_95/0.08),transparent_28%),radial-gradient(circle_at_78%_10%,rgb(139_92_246/0.06),transparent_24%)]" />
       <div className="orbit-engraving opacity-[0.12]" aria-hidden />
 
-      <div className="relative z-10 flex min-h-screen">
+      <div className="relative z-10 flex min-h-[100svh]">
         <aside className="hidden w-[252px] shrink-0 flex-col border-r border-white/10 bg-[#070707] px-2 py-3 md:flex">
           <div className="mb-4 flex items-center justify-between px-2">
-            <a href="/" className="flex h-9 w-9 items-center justify-center rounded-full text-white transition-colors hover:bg-white/10" aria-label="Volver al inicio">
+            <a href="/" className="flex h-11 w-11 items-center justify-center rounded-full text-white transition-colors hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--accent-cyan)]" aria-label="Volver al inicio">
               <Scale size={18} className="text-[var(--accent-cyan)]" />
             </a>
-            <button className="flex h-9 w-9 items-center justify-center rounded-lg text-[var(--primary-60)] transition-colors hover:bg-white/10 hover:text-white" aria-label="Contraer barra lateral">
+            <button className="flex h-11 w-11 items-center justify-center rounded-lg text-[var(--primary-60)] transition-colors hover:bg-white/10 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--accent-cyan)]" aria-label="Contraer barra lateral">
               <MoreHorizontal size={18} />
             </button>
           </div>
@@ -307,6 +359,8 @@ export function ChatExperience() {
             {NAV.map((item) => (
               <button
                 key={item.label}
+                type="button"
+                onClick={item.label === "Nuevo chat" ? startNewChat : undefined}
                 className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
                   item.active ? "bg-white/10 text-white" : "text-[var(--primary-80)] hover:bg-white/8 hover:text-white"
                 }`}
@@ -319,10 +373,20 @@ export function ChatExperience() {
 
           <div className="mt-6 flex-1 overflow-hidden px-1">
             <p className="mb-2 px-2 text-xs text-[var(--primary-44)]">Chats</p>
+            <label className="mb-3 flex items-center gap-2 rounded-lg border border-white/10 bg-black/20 px-3 py-2">
+              <Search size={14} className="text-[var(--primary-44)]" />
+              <input
+                value={historySearch}
+                onChange={(event) => setHistorySearch(event.target.value)}
+                className="min-w-0 flex-1 bg-transparent text-xs text-white outline-none placeholder:text-[var(--primary-44)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-cyan)]"
+                placeholder="Buscar historial…"
+              />
+            </label>
             <div className="space-y-1">
-              {CHAT_HISTORY.map((chat) => (
+              {visibleHistory.map((chat) => (
                 <button
                   key={chat.title}
+                  type="button"
                   className={`group w-full rounded-lg px-3 py-2 text-left transition-colors ${
                     chat.active ? "bg-[rgb(216_177_95/0.12)]" : "hover:bg-white/8"
                   }`}
@@ -334,40 +398,81 @@ export function ChatExperience() {
                   <p className="mt-1 truncate pl-6 text-xs text-[var(--primary-44)]">{chat.preview}</p>
                 </button>
               ))}
+              {visibleHistory.length === 0 && (
+                <p className="px-3 py-2 text-xs text-[var(--primary-44)]">Sin resultados.</p>
+              )}
             </div>
           </div>
         </aside>
 
         <section className="flex min-w-0 flex-1 flex-col">
-          <header className="flex h-14 items-center justify-between px-6">
+          <header className="flex h-14 items-center justify-between px-4 pt-[env(safe-area-inset-top)] sm:px-6">
             <div className="flex items-center gap-2 text-sm font-medium text-white">
               Aristoteles <span className="text-[var(--primary-44)]">chat</span>
             </div>
-            <div className="section-label hidden sm:block">oraculo de evidencia</div>
+            <div className="flex items-center gap-3">
+              <div className="section-label hidden sm:block">oraculo de evidencia</div>
+              <button
+                type="button"
+                onClick={startNewChat}
+                className="hidden min-h-11 items-center gap-2 rounded-full border border-white/10 px-3 text-xs text-[var(--primary-60)] transition-colors hover:bg-white/10 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--accent-cyan)] sm:inline-flex"
+              >
+                <Trash2 size={14} />
+                limpiar
+              </button>
+            </div>
           </header>
 
-          <div className="flex min-h-0 flex-1 flex-col px-4 pb-6 sm:px-6">
+          <div className="flex min-h-0 flex-1 flex-col px-3 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:px-6">
             <div className="mx-auto flex min-h-0 w-full max-w-4xl flex-1 flex-col">
               {messages.length === 0 ? (
                 <div className="flex min-h-0 flex-1 flex-col justify-end pb-9 text-center">
                   <div className="mx-auto mb-5 flex h-11 w-11 items-center justify-center rounded-full border border-[rgb(216_177_95/0.24)] bg-[rgb(216_177_95/0.08)]">
                     <Sparkles size={18} className="text-[var(--accent-cyan)]" />
                   </div>
-                  <h1 className="text-2xl font-medium text-white sm:text-3xl">Pregunta y contrasta con evidencia.</h1>
+                  <h1 className="text-2xl font-medium text-white sm:text-3xl">Pregunta sobre tus documentos.</h1>
                   <p className="mx-auto mt-3 max-w-lg text-sm leading-6 text-[var(--primary-44)]">
-                    Investigo la web con fuentes citables. Adjunta PDFs para contrastarlos con evidencia externa.
+                    Adjunta uno o varios PDFs y pide comparaciones, riesgos, garantias o evidencia localizada.
                   </p>
+                  <div className="mx-auto mt-6 grid max-w-2xl gap-2 sm:grid-cols-2">
+                    {QUICK_PROMPTS.map((prompt) => (
+                      <button
+                        key={prompt}
+                        type="button"
+                        onClick={() => setQuestion(prompt)}
+                        className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-left text-xs leading-5 text-[var(--primary-70)] transition-colors hover:border-[rgb(216_177_95/0.28)] hover:bg-[rgb(216_177_95/0.08)] hover:text-white"
+                      >
+                        {prompt}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               ) : (
                 <div className="mb-6 min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain pr-1 scrollbar-thin">
                   {messages.map((message) => (
                     <div key={message.id} className={message.role === "user" ? "ml-auto max-w-2xl" : "mr-auto max-w-3xl"}>
-                      <div className={`rounded-2xl border px-4 py-3 text-sm leading-6 ${
+                      <div className={`break-words rounded-2xl border px-4 py-3 text-sm leading-6 ${
                         message.role === "user"
                           ? "border-white/10 bg-white/10 text-white"
                           : "border-[rgb(216_177_95/0.18)] bg-black/30 text-[var(--primary-80)]"
                       }`}>
-                        {message.content}
+                        <div className="flex items-start gap-3">
+                          <p className="min-w-0 flex-1 whitespace-pre-wrap">{message.content}</p>
+                          <button
+                            type="button"
+                            onClick={() => copyMessage(message)}
+                            className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[var(--primary-44)] transition-colors hover:bg-white/10 hover:text-white"
+                            aria-label="Copiar mensaje"
+                            title="Copiar"
+                          >
+                            <Copy size={13} />
+                          </button>
+                        </div>
+                        {copiedMessageId === message.id && (
+                          <p className="mt-2 text-[0.68rem] uppercase tracking-[0.16em] text-[var(--accent-cyan)]">
+                            copiado
+                          </p>
+                        )}
                         {message.result && (
                           <div className="mt-4 space-y-3 border-t border-white/10 pt-4">
                             <div className="flex flex-wrap gap-2 text-xs text-[var(--primary-44)]">
@@ -451,6 +556,14 @@ export function ChatExperience() {
                       </div>
                     </div>
                   ))}
+                  {isSending && (
+                    <div className="mr-auto max-w-3xl rounded-2xl border border-[rgb(216_177_95/0.18)] bg-black/30 px-4 py-3 text-sm text-[var(--primary-70)]">
+                      <span className="inline-flex items-center gap-2">
+                        <Loader2 size={15} className="animate-spin text-[var(--accent-cyan)]" />
+                        El agente esta revisando criterios, evidencia y alternativas...
+                      </span>
+                    </div>
+                  )}
                   <div ref={messagesEndRef} />
                 </div>
               )}
@@ -468,9 +581,17 @@ export function ChatExperience() {
                 <div className="mb-3 flex flex-wrap gap-2 px-2">
                   {files.length ? (
                     files.map((file) => (
-                      <span key={`${file.name}-${file.size}`} className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/20 px-3 py-1.5 text-xs text-[var(--primary-60)]">
-                        <FileText size={12} className="text-[var(--accent-cyan)]" />
-                        {file.name}
+                      <span key={`${file.name}-${file.size}`} className="inline-flex max-w-full items-center gap-2 rounded-full border border-white/10 bg-black/20 px-3 py-1.5 text-xs text-[var(--primary-60)]">
+                        <FileText size={12} className="shrink-0 text-[var(--accent-cyan)]" />
+                        <span className="min-w-0 truncate">{file.name}</span>
+                        <button
+                          type="button"
+                          onClick={() => removeFile(file)}
+                          className="rounded-full text-[var(--primary-44)] transition-colors hover:text-white"
+                          aria-label={`Quitar ${file.name}`}
+                        >
+                          <X size={12} />
+                        </button>
                       </span>
                     ))
                   ) : (
@@ -478,20 +599,21 @@ export function ChatExperience() {
                   )}
                 </div>
 
-                <div className="flex items-center gap-3 px-2 pb-1">
+                <div className="flex items-center gap-2 px-1 pb-1 sm:gap-3 sm:px-2">
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[var(--primary-60)] transition-colors hover:bg-white/10 hover:text-white"
+                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[var(--primary-60)] transition-colors hover:bg-white/10 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--accent-cyan)]"
                     aria-label="Adjuntar archivos"
                   >
                     <Paperclip size={18} />
                   </button>
-                  <input
+                  <textarea
                     value={question}
                     onChange={(event) => setQuestion(event.target.value)}
-                    className="min-h-10 flex-1 bg-transparent py-2 text-base text-white outline-none placeholder:text-[var(--primary-44)]"
-                    placeholder="Preguntar lo que quieras"
+                    onKeyDown={onQuestionKeyDown}
+                    className="max-h-32 min-h-11 min-w-0 flex-1 resize-none bg-transparent py-2 text-base leading-6 text-white outline-none placeholder:text-[var(--primary-44)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-cyan)]"
+                    placeholder="Preguntar…"
                     maxLength={1200}
                   />
                   <AIVoiceInput
@@ -508,7 +630,7 @@ export function ChatExperience() {
                     type="button"
                     disabled={!canSend}
                     onClick={onConversationClick}
-                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 text-[var(--primary-60)] transition-colors hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/10 text-[var(--primary-60)] transition-colors hover:bg-white/10 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--accent-cyan)] disabled:cursor-not-allowed disabled:opacity-40"
                     aria-label="Conversar sobre propuestas"
                     title="Conversar sobre propuestas"
                   >
@@ -517,7 +639,7 @@ export function ChatExperience() {
                   <button
                     type="submit"
                     disabled={!canSend}
-                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--accent-marble)] text-black transition-transform hover:scale-105 disabled:cursor-not-allowed disabled:opacity-40"
+                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--accent-marble)] text-black transition-transform hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--accent-cyan)] disabled:cursor-not-allowed disabled:opacity-40"
                     aria-label="Analizar y decidir"
                     title="Analizar y decidir"
                   >

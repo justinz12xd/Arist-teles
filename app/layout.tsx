@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { SmoothScroll } from "@/components/providers/SmoothScroll";
@@ -17,6 +17,12 @@ export const metadata: Metadata = {
   title: "Aristoteles | Decisiones respaldadas por evidencia",
   description:
     "Sistema multiagente para comparar proveedores, contratos y propuestas con criterios confirmados, citas verificables y confianza explicable.",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({

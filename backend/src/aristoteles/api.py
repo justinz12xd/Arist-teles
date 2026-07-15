@@ -17,6 +17,7 @@ from fastapi import (
     UploadFile,
     status,
 )
+from fastapi.middleware.cors import CORSMiddleware
 
 from .agents import AgentRuntime
 from .config import Settings, get_settings
@@ -338,6 +339,13 @@ async def get_report_pdf(run_id: str, context: AuthContext) -> Response:
 def create_legacy_app() -> FastAPI:
     """Compatibility factory; production uses ``aristoteles_api.main``."""
     application = FastAPI(title="Aristóteles API", version="0.1.0")
+    application.add_middleware(
+        CORSMiddleware,
+        allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
     application.include_router(router)
     return application
 

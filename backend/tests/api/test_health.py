@@ -12,7 +12,7 @@ def test_health_does_not_require_external_credentials() -> None:
 
 
 def test_agent_demo_route_is_registered() -> None:
-    paths = {route.path for route in create_app().routes}
+    paths = {route.path for route in create_app().routes if hasattr(route, "path")}
 
     assert "/v1/demo/agent" in paths
     assert "/v1/chat/research" in paths
