@@ -5,15 +5,15 @@ import { ScrollReveal } from "@/components/effects/ScrollReveal";
 import { viewportOnce } from "@/lib/motion";
 
 const TERMINAL_LINES = [
-  "> aristoteles.run · expediente proveedor-q4",
-  "> criterios confirmados: precio=.30 garantia=.20 entrega=.20 cumplimiento=.20 riesgos=.10",
-  "> contradiccion critica: no encontrada",
-  "> decision: recommend(Proveedor B) · confidence=high · score=0.84",
+  "> papiros listos: 3",
+  "> dictamen: Proveedor B",
+  "> riesgos pendientes: soporte postventa, penalidad por retraso",
+  "> recomendación lista para revisar",
 ];
 
 export function CTA() {
   return (
-    <section id="cta" className="relative scroll-mt-[var(--header-h)] px-6 py-40">
+    <section id="cta" className="relative scroll-mt-[var(--header-h)] px-6 py-32">
       <div
         className="pointer-events-none absolute inset-0"
         style={{
@@ -24,16 +24,14 @@ export function CTA() {
 
       <div className="relative mx-auto max-w-3xl text-center">
         <ScrollReveal>
-          <h2 className="text-h1">Sube tres propuestas. Defiende una decision.</h2>
+          <h2 className="text-h1">Que el oráculo cite sus fuentes.</h2>
           <p className="mx-auto mt-6 max-w-xl text-lg text-[var(--primary-60)]">
-            El MVP se enfoca en comparacion de proveedores: documentos privados,
-            criterios editables, progreso visible y reporte descargable con la misma
-            decision estructurada que viste en pantalla.
+            Una experiencia inspirada en el Liceo: deliberación, evidencia y una recomendación que se puede defender.
           </p>
         </ScrollReveal>
 
         <ScrollReveal delay={0.15}>
-          <div className="crt mx-auto mt-12 max-w-2xl p-6 text-left text-xs leading-relaxed">
+          <div className="crt hellenic-frame mx-auto mt-10 max-w-xl p-6 pt-8 text-left text-xs leading-relaxed">
             <div className="crt-content">
               {TERMINAL_LINES.map((line, i) => (
                 <motion.p
@@ -41,7 +39,7 @@ export function CTA() {
                   initial={{ opacity: 0 }}
                   whileInView={{ opacity: 1 }}
                   viewport={viewportOnce}
-                  transition={{ delay: 0.4 + i * 0.35, duration: 0.05 }}
+                  transition={{ delay: 0.4 + i * 0.3, duration: 0.05 }}
                 >
                   {line}
                 </motion.p>
@@ -51,7 +49,7 @@ export function CTA() {
                 initial={{ opacity: 0 }}
                 whileInView={{ opacity: 1 }}
                 viewport={viewportOnce}
-                transition={{ delay: 2 }}
+                transition={{ delay: 1.8 }}
               >
                 {"> "}
               </motion.p>
@@ -61,11 +59,11 @@ export function CTA() {
 
         <ScrollReveal delay={0.3}>
           <a
-            href="#"
-            className="mt-12 inline-block rounded-full bg-white px-12 py-5 text-lg font-medium text-black transition-all duration-300 hover:scale-[1.03] hover:shadow-[0_0_60px_rgb(34_211_238/0.45)]"
+            href="/chat"
+            className="mt-10 inline-block rounded-full bg-[var(--accent-marble)] px-10 py-4 text-base font-medium text-black transition-all duration-300 hover:scale-[1.03] hover:shadow-[0_0_60px_rgb(216_177_95/0.45)]"
             style={{ transitionTimingFunction: "var(--ease-out-expo)" }}
           >
-            Crear expediente de prueba
+            Consultar el oráculo
           </a>
         </ScrollReveal>
       </div>

@@ -17,15 +17,19 @@
   --primary-80: rgb(255 255 255 / 0.8);
   --primary-100: #fff;
 
-  /* Acentos */
-  --accent-cyan: #22d3ee;
+  /* Acentos — bronce helénico + resplandor orbital */
+  --accent-cyan: #d8b15f;
+  --accent-gold: #d8b15f;
+  --accent-gold-rgb: 216 177 95;
+  --accent-marble: #e8dfcc;
+  --accent-olive: #7d8a56;
   --accent-blue: #3b82f6;
   --accent-violet: #8b5cf6;
 
-  /* Superficies — gris carbón neutro, sin tinte */
-  --glass-bg: rgb(19 19 19 / 0.82);
-  --glass-border-top: rgb(255 255 255 / 0.1);
-  --glass-border-bottom: rgb(255 255 255 / 0.04);
+  /* Superficies — mármol negro / bronce envejecido */
+  --glass-bg: rgb(18 17 15 / 0.84);
+  --glass-border-top: rgb(216 177 95 / 0.22);
+  --glass-border-bottom: rgb(255 255 255 / 0.045);
 
   /* Type scale fluido (375px → 1440px) */
   --type-h1-size: clamp(2.5rem, calc(2.5rem + 3 * ((100vw - 23.4375rem) / 66.5625)), 5.5rem);
@@ -90,13 +94,64 @@ body {
   color: var(--primary-100);
 }
 
-/* Microlabel terminal — la firma tipográfica */
+/* Microlabel terminal — inscripción de bronce */
 .section-label {
   font-family: var(--font-mono);
   font-size: 0.625rem;
   letter-spacing: 0.175em;
   text-transform: uppercase;
   color: var(--accent-cyan);
+}
+
+.hellenic-title {
+  font-family: Georgia, "Times New Roman", serif;
+  font-variant: small-caps;
+  text-shadow: 0 0 36px rgb(var(--accent-gold-rgb) / 0.16);
+}
+
+.hellenic-rule {
+  height: 10px;
+  opacity: 0.72;
+  background-image: linear-gradient(90deg,
+    transparent 0 10px,
+    rgb(var(--accent-gold-rgb) / 0.95) 10px 18px,
+    transparent 18px 26px,
+    rgb(var(--accent-gold-rgb) / 0.45) 26px 34px,
+    transparent 34px 42px
+  );
+  background-size: 42px 10px;
+  mask-image: linear-gradient(90deg, transparent, #000 18%, #000 82%, transparent);
+}
+
+.hellenic-frame {
+  position: relative;
+  overflow: hidden;
+}
+.hellenic-frame::before,
+.hellenic-frame::after {
+  content: "";
+  position: absolute;
+  left: 1rem;
+  right: 1rem;
+  height: 8px;
+  pointer-events: none;
+  background-image: linear-gradient(90deg,
+    rgb(var(--accent-gold-rgb) / 0.7) 0 8px,
+    transparent 8px 14px,
+    rgb(var(--accent-gold-rgb) / 0.35) 14px 22px,
+    transparent 22px 30px
+  );
+  background-size: 30px 8px;
+  opacity: 0.7;
+}
+.hellenic-frame::before { top: 0.75rem; }
+.hellenic-frame::after { bottom: 0.75rem; transform: scaleX(-1); }
+
+.marble-surface {
+  background-image:
+    linear-gradient(var(--glass-bg), var(--glass-bg)),
+    radial-gradient(circle at 20% 0%, rgb(232 223 204 / 0.12), transparent 30%),
+    linear-gradient(115deg, transparent 0 24%, rgb(255 255 255 / 0.045) 24.5% 25%, transparent 25.5% 100%);
 }
 
 /* Glass card — doble background-clip */
@@ -112,11 +167,11 @@ body {
 /* Panel CRT — esquinas duras, scanlines, flicker */
 .crt {
   position: relative;
-  border: 1px solid rgb(34 211 238 / 0.4);
+  border: 1px solid rgb(var(--accent-gold-rgb) / 0.44);
   box-shadow:
-    0 0 24px rgb(34 211 238 / 0.12),
-    inset 0 0 32px rgb(34 211 238 / 0.06);
-  background: rgb(5 15 20 / 0.85);
+    0 0 24px rgb(var(--accent-gold-rgb) / 0.13),
+    inset 0 0 32px rgb(var(--accent-gold-rgb) / 0.06);
+  background: rgb(16 12 8 / 0.88);
   font-family: var(--font-mono);
   color: var(--accent-cyan);
 }
@@ -196,4 +251,89 @@ body {
   .float-x, .float-y, .crt::after, .crt-cursor::after {
     animation: none;
   }
+}
+
+/* Página de chat — observatorio astronómico + columnas griegas */
+.astral-oracle-bg {
+  background:
+    radial-gradient(circle at 50% 8%, rgb(var(--accent-gold-rgb) / 0.16), transparent 28%),
+    radial-gradient(circle at 18% 22%, rgb(59 130 246 / 0.12), transparent 22%),
+    radial-gradient(circle at 82% 20%, rgb(139 92 246 / 0.1), transparent 24%),
+    linear-gradient(180deg, rgb(3 3 3 / 0.15), rgb(3 3 3 / 0.85));
+}
+
+.orbit-engraving {
+  position: absolute;
+  inset: 10% 12%;
+  pointer-events: none;
+  opacity: 0.28;
+  background:
+    radial-gradient(ellipse at center, transparent 0 32%, rgb(var(--accent-gold-rgb) / 0.22) 32.2% 32.6%, transparent 32.8% 100%),
+    radial-gradient(ellipse at center, transparent 0 47%, rgb(255 255 255 / 0.12) 47.2% 47.5%, transparent 47.7% 100%),
+    radial-gradient(ellipse at center, transparent 0 63%, rgb(var(--accent-gold-rgb) / 0.16) 63.2% 63.5%, transparent 63.7% 100%);
+  transform: rotate(-11deg);
+  mask-image: radial-gradient(circle, #000 0 62%, transparent 76%);
+}
+
+.greek-pillar {
+  position: absolute;
+  top: 9rem;
+  bottom: 3rem;
+  width: clamp(4.5rem, 8vw, 7.5rem);
+  opacity: 0.82;
+  filter: drop-shadow(0 0 28px rgb(var(--accent-gold-rgb) / 0.08));
+}
+.greek-pillar.left { left: clamp(1rem, 4vw, 4.5rem); }
+.greek-pillar.right { right: clamp(1rem, 4vw, 4.5rem); transform: scaleX(-1); }
+
+.greek-pillar .capital,
+.greek-pillar .base {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 3rem;
+  border: 1px solid rgb(var(--accent-gold-rgb) / 0.28);
+  background:
+    linear-gradient(90deg, transparent, rgb(232 223 204 / 0.14), transparent),
+    linear-gradient(180deg, rgb(232 223 204 / 0.18), rgb(76 59 31 / 0.16));
+}
+.greek-pillar .capital { top: 0; border-radius: 0.7rem 0.7rem 0.2rem 0.2rem; }
+.greek-pillar .base { bottom: 0; border-radius: 0.2rem 0.2rem 0.8rem 0.8rem; }
+.greek-pillar .shaft {
+  position: absolute;
+  top: 3rem;
+  bottom: 3rem;
+  left: 14%;
+  right: 14%;
+  border-inline: 1px solid rgb(var(--accent-gold-rgb) / 0.22);
+  background:
+    repeating-linear-gradient(90deg,
+      rgb(232 223 204 / 0.15) 0 5px,
+      rgb(216 177 95 / 0.08) 5px 9px,
+      rgb(0 0 0 / 0.08) 9px 13px
+    ),
+    linear-gradient(180deg, rgb(232 223 204 / 0.08), rgb(216 177 95 / 0.04));
+  border-radius: 999px 999px 0 0;
+}
+.greek-pillar .shaft::before {
+  content: "";
+  position: absolute;
+  inset: 0.75rem 18% 0.75rem 18%;
+  border-inline: 1px solid rgb(255 255 255 / 0.08);
+}
+
+.oracle-chat-panel {
+  background:
+    linear-gradient(rgb(14 13 12 / 0.9), rgb(14 13 12 / 0.9)) padding-box,
+    linear-gradient(135deg, rgb(var(--accent-gold-rgb) / 0.45), rgb(255 255 255 / 0.06), rgb(88 77 55 / 0.35)) border-box;
+  border: 1px solid transparent;
+  box-shadow:
+    0 24px 100px rgb(0 0 0 / 0.45),
+    0 0 80px rgb(var(--accent-gold-rgb) / 0.08),
+    inset 0 1px 0 rgb(255 255 255 / 0.06);
+}
+
+@media (max-width: 1024px) {
+  .greek-pillar { display: none; }
+  .orbit-engraving { inset: 4% 0; opacity: 0.2; }
 }

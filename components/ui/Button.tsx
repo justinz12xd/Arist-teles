@@ -12,7 +12,7 @@ export function Button({ href, variant = "primary", children, ariaLabel }: Props
     "inline-flex items-center gap-2 rounded-full px-6 py-3 text-sm font-medium transition-all duration-200 motion-safe:hover:scale-[1.02] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--accent-cyan)]";
   const styles =
     variant === "primary"
-      ? "bg-white text-black hover:shadow-[0_0_24px_rgb(34_211_238/0.35)]"
+      ? "bg-[var(--accent-marble)] text-black hover:shadow-[0_0_24px_rgb(216_177_95/0.35)]"
       : "border border-[var(--primary-12)] text-white hover:bg-[var(--primary-4)]";
   return (
     <a
