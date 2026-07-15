@@ -3,7 +3,7 @@ import json
 from datetime import UTC, datetime
 from typing import Annotated
 
-from fastapi import BackgroundTasks, Depends, FastAPI, Header, HTTPException, status
+from fastapi import BackgroundTasks, Depends, FastAPI, Header, HTTPException, Response, status
 
 from .agents import AgentRuntime
 from .config import Settings, get_settings
@@ -11,6 +11,7 @@ from .contracts import CaseCreate, CriteriaConfirmation, DocumentRegister, RunSt
 from .extraction import extract_image, extract_pdf
 from .insforge import InsForgeError, InsForgeRepository
 from .pipeline import AnalysisPipeline
+from .reporting import render_pdf
 
 app = FastAPI(title="Aristóteles API", version="0.1.0")
 
@@ -265,3 +266,13 @@ async def get_report(run_id: str, context: AuthContext) -> dict:
     if report is None:
         raise HTTPException(status_code=404, detail="Report not found")
     return report["report"]
+
+
+@app.get("/v1/runs/{run_id}/report.pdf")
+async def get_report_pdf(run_id: str, context: AuthContext) -> Response:
+    report = await get_report(run_id, context)
+    return Response(
+        content=render_pdf(report),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="aristoteles-{run_id}.pdf"'},
+    )
