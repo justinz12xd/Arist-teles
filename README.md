@@ -1,36 +1,48 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Aristóteles
 
-## Getting Started
+Aristóteles es un sistema multiagente de apoyo a decisiones. Analiza documentos, compara alternativas y entrega una recomendación justificable mediante evidencia localizada.
 
-First, run the development server:
+El primer caso de uso compara proveedores a partir de cotizaciones, contratos y garantías. Aristóteles **no toma la decisión por el usuario**: organiza la evidencia, explica los riesgos y permite que una persona decida con mejor información.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## Flujo del MVP
+
+1. El usuario crea un expediente y carga archivos PDF o imágenes.
+2. El sistema extrae el contenido, aplica OCR cuando es necesario y construye un índice RAG.
+3. El Planner propone criterios y pesos de comparación.
+4. El usuario confirma o modifica esos criterios.
+5. Los agentes investigan, comparan y generan una recomendación.
+6. El usuario revisa la evidencia y descarga el reporte en PDF.
+
+```text
+Usuario
+  │
+  ├── Documentos ──► Document Agent ──► Corpus RAG
+  │
+  └── Solicitud ───► Planner Agent
+                          │
+                 ┌────────┴────────┐
+                 ▼                 ▼
+          Research Agent    Comparison Agent
+                 └────────┬────────┘
+                          ▼
+                   Decision Agent
+                          ▼
+               Report Generator ──► Web + PDF
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Principios
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- **Evidencia antes que elocuencia:** ninguna recomendación sin fuentes verificables.
+- **Humano al mando:** el sistema recomienda; el usuario decide.
+- **Trazabilidad útil:** se muestran planes, estados, herramientas, citas y resultados, no razonamiento privado del modelo.
+- **Aislamiento por usuario:** documentos, ejecuciones y reportes se protegen con RLS.
+- **Recuperación ante fallos:** los análisis son asíncronos, idempotentes y reanudables.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Documentación
 
-## Learn More
+- [Requisitos del producto](docs/PRD.md)
+- [Arquitectura técnica](docs/ARCHITECTURE.md)
 
-To learn more about Next.js, take a look at the following resources:
+## Estado
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+El repositorio contiene una plantilla frontend inicial. Esta entrega añade la definición del producto y la arquitectura del backend multiagente que guiarán su implementación e integración.
