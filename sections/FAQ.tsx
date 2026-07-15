@@ -6,11 +6,11 @@ import { ScrollReveal } from "@/components/effects/ScrollReveal";
 import { SectionLabel } from "@/components/ui/SectionLabel";
 
 const FAQS = [
-  { q: "¿Necesito equipo para inscribirme?", a: "No. Podés subir a bordo en solitario: la noche de apertura tiene una ronda de acople donde se forman tripulaciones de 2 a 5 personas." },
-  { q: "¿Es presencial o remoto?", a: "Híbrido. La estación física tiene 300 asientos; el canal remoto transmite mentorías y acepta demos en vivo por la misma ventana de lanzamiento." },
-  { q: "¿Qué nivel técnico se espera?", a: "Cualquiera que pueda llevar una idea a demo. Hay rutas para perfiles de producto y diseño, no solo para quienes escriben código." },
-  { q: "¿Quién se queda con lo construido?", a: "Tu equipo. Todo el código y la propiedad intelectual quedan en manos de quienes lo crearon. La estación solo pide una demo pública." },
-  { q: "¿Cuánto cuesta participar?", a: "Nada. El asiento se reserva con inscripción aprobada. El combustible lo ponen los aliados." },
+  { q: "¿Aristóteles toma la decisión por mí?", a: "No. El sistema prepara evidencia, compara alternativas y emite una recomendación no vinculante. La aprobación final sigue siendo humana." },
+  { q: "¿Qué documentos acepta el MVP?", a: "PDFs digitales, PDFs escaneados e imágenes PNG, JPEG o WebP. Si la extracción local no alcanza calidad suficiente, puede activarse fallback visual." },
+  { q: "¿Puedo cambiar los criterios?", a: "Sí. El Planner sugiere criterios y pesos, pero el usuario debe confirmarlos antes de iniciar la comparación. Los pesos confirmados deben sumar 1.0." },
+  { q: "¿Qué pasa si falta información?", a: "El dato se mantiene como ausente. El modelo no puede inventarlo ni completarlo por inferencia, y la ausencia reduce la confianza cuando afecta un criterio crítico." },
+  { q: "¿Cómo se protege la privacidad?", a: "Cada expediente pertenece a un usuario autenticado. La recuperación filtra por usuario y expediente, y borrar el expediente elimina documentos y artefactos derivados." },
 ];
 
 export function FAQ() {
@@ -19,8 +19,8 @@ export function FAQ() {
   return (
     <section id="faq" className="relative mx-auto max-w-3xl scroll-mt-[var(--header-h)] px-6 py-32">
       <ScrollReveal>
-        <SectionLabel>[ 07 · transmisiones ]</SectionLabel>
-        <h2 className="text-h2">Preguntas desde tierra.</h2>
+        <SectionLabel>[ 07 · preguntas ]</SectionLabel>
+        <h2 className="text-h2">Lo que debe quedar claro antes de confiar en una recomendación.</h2>
       </ScrollReveal>
 
       <div className="mt-12 divide-y divide-[var(--primary-4)] border-y border-[var(--primary-4)]">

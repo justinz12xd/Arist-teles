@@ -14,9 +14,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ORBITAL — Hackathon en órbita",
+  title: "Aristóteles — decisiones respaldadas por evidencia",
   description:
-    "72 horas, una estación espacial imaginaria y una misión: llevar tu idea de cero a órbita. Hackathon de IA y exploración.",
+    "Sistema multiagente para comparar proveedores, detectar riesgos y generar recomendaciones auditables con evidencia documental.",
 };
 
 export default function RootLayout({

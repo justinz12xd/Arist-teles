@@ -5,16 +5,15 @@ import { ScrollReveal } from "@/components/effects/ScrollReveal";
 import { viewportOnce } from "@/lib/motion";
 
 const TERMINAL_LINES = [
-  "> estación órbita · consola de embarque v2.6",
-  "> verificando ventana de lanzamiento......... ok",
-  "> asientos disponibles: 117 / 300",
-  "> estado de la señal: ABIERTA",
+  "> aristoteles.run · expediente proveedor-q4",
+  "> criterios confirmados: precio=.30 garantia=.20 entrega=.20 cumplimiento=.20 riesgos=.10",
+  "> contradicción crítica: no encontrada",
+  "> decisión: recommend(Proveedor B) · confidence=high · score=0.84",
 ];
 
 export function CTA() {
   return (
     <section id="cta" className="relative scroll-mt-[var(--header-h)] px-6 py-40">
-      {/* brillo final de escena */}
       <div
         className="pointer-events-none absolute inset-0"
         style={{
@@ -25,16 +24,16 @@ export function CTA() {
 
       <div className="relative mx-auto max-w-3xl text-center">
         <ScrollReveal>
-          <h2 className="text-h1">La compuerta se cierra pronto.</h2>
-          <p className="mx-auto mt-6 max-w-lg text-lg text-[var(--primary-60)]">
-            Reservá tu asiento antes de que la ventana de lanzamiento se cierre.
-            La próxima órbita pasa en un año.
+          <h2 className="text-h1">Subí tres propuestas. Defendé una decisión.</h2>
+          <p className="mx-auto mt-6 max-w-xl text-lg text-[var(--primary-60)]">
+            El MVP se enfoca en comparación de proveedores: documentos privados,
+            criterios editables, progreso visible y reporte descargable con la misma
+            decisión estructurada que viste en pantalla.
           </p>
         </ScrollReveal>
 
-        {/* Panel CRT — la firma de la página */}
         <ScrollReveal delay={0.15}>
-          <div className="crt mx-auto mt-12 max-w-xl p-6 text-left text-xs leading-relaxed">
+          <div className="crt mx-auto mt-12 max-w-2xl p-6 text-left text-xs leading-relaxed">
             <div className="crt-content">
               {TERMINAL_LINES.map((line, i) => (
                 <motion.p
@@ -66,7 +65,7 @@ export function CTA() {
             className="mt-12 inline-block rounded-full bg-white px-12 py-5 text-lg font-medium text-black transition-all duration-300 hover:scale-[1.03] hover:shadow-[0_0_60px_rgb(34_211_238/0.45)]"
             style={{ transitionTimingFunction: "var(--ease-out-expo)" }}
           >
-            Iniciar secuencia de embarque
+            Crear expediente de prueba
           </a>
         </ScrollReveal>
       </div>

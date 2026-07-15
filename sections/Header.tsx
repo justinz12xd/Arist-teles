@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Orbit } from "lucide-react";
+import { Scale } from "lucide-react";
 
 const LINKS = [
   { href: "#about", label: "Misión" },
-  { href: "#timeline", label: "Bitácora" },
-  { href: "#tracks", label: "Rutas" },
-  { href: "#speakers", label: "Tripulación" },
+  { href: "#timeline", label: "Flujo" },
+  { href: "#tracks", label: "Casos" },
+  { href: "#speakers", label: "Agentes" },
   { href: "#faq", label: "FAQ" },
 ];
 
@@ -28,8 +28,8 @@ export function Header() {
     >
       <div className="mx-auto flex h-full max-w-6xl items-center justify-between px-6">
         <a href="#" className="flex items-center gap-2 font-medium text-white">
-          <Orbit size={18} className="text-[var(--accent-cyan)]" />
-          ORBITAL
+          <Scale size={18} className="text-[var(--accent-cyan)]" />
+          ARISTÓTELES
         </a>
         <nav className="hidden gap-8 md:flex">
           {LINKS.map((l) => (
@@ -46,7 +46,7 @@ export function Header() {
           href="#cta"
           className="rounded-full bg-white px-4 py-1.5 text-sm font-medium text-black transition-shadow hover:shadow-[0_0_20px_rgb(34_211_238/0.3)]"
         >
-          Inscribirse
+          Probar demo
         </a>
       </div>
     </header>
