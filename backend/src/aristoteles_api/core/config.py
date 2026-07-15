@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     openai_fast_model: str = "gpt-5.6-luna"
     openai_verify_model: str = "gpt-5.6-terra"
     openai_deep_model: str = "gpt-5.6-sol"
+    openai_transcribe_model: str = "whisper-1"
     openai_embedding_model: str = "text-embedding-3-small"
     openai_embedding_dimensions: int = Field(default=1536, gt=0)
     insforge_base_url: AnyHttpUrl | None = Field(

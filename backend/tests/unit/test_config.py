@@ -12,6 +12,7 @@ def test_settings_allow_health_without_provider_credentials() -> None:
     assert settings.rag_default_top_k == 5
     assert settings.model_for_agent("planner") == "gpt-5.6-luna"
     assert settings.model_for_agent("decision") == "gpt-5.6-terra"
+    assert settings.openai_transcribe_model == "whisper-1"
 
 
 def test_settings_accept_legacy_insforge_url_without_a_second_config() -> None:

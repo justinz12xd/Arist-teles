@@ -30,10 +30,22 @@ from .demo import demo_agent_endpoint
 from .extraction import extract_image, extract_pdf
 from .insforge import InsForgeError, InsForgeRepository
 from .pipeline import AnalysisPipeline
+from .transcription import WhisperTranscriptionService
 from .web_research import WebResearchService
 
 router = APIRouter(tags=["analysis"])
 SettingsContext = Annotated[Settings, Depends(get_settings)]
+SUPPORTED_AUDIO_TYPES = {
+    "audio/flac",
+    "audio/m4a",
+    "audio/mp3",
+    "audio/mp4",
+    "audio/mpeg",
+    "audio/ogg",
+    "audio/wav",
+    "audio/webm",
+}
+MAX_AUDIO_BYTES = 20 * 1024 * 1024
 
 
 def parse_cors_origins(value: str | list[str]) -> list[str]:
@@ -143,6 +155,14 @@ def _insforge_error(exc: InsForgeError) -> HTTPException:
     return HTTPException(status_code=502, detail="InsForge request failed")
 
 
+def _verify_proxy_secret(settings: Settings, provided: str | None) -> None:
+    if settings.aristoteles_api_shared_secret is None:
+        return
+    expected = settings.aristoteles_api_shared_secret.get_secret_value()
+    if not provided or not hmac.compare_digest(provided, expected):
+        raise HTTPException(status_code=401, detail="Invalid proxy credential")
+
+
 @router.get("/health", tags=["health"])
 async def health() -> dict[str, str]:
     return {"status": "ok"}
@@ -160,10 +180,7 @@ async def research_chat(
     x_aristoteles_proxy: Annotated[str | None, Header()] = None,
 ) -> dict:
     """Fast public-chat bridge: web evidence alone or web evidence plus uploaded PDFs."""
-    if settings.aristoteles_api_shared_secret is not None:
-        expected = settings.aristoteles_api_shared_secret.get_secret_value()
-        if not x_aristoteles_proxy or not hmac.compare_digest(x_aristoteles_proxy, expected):
-            raise HTTPException(status_code=401, detail="Invalid chat proxy credential")
+    _verify_proxy_secret(settings, x_aristoteles_proxy)
 
     documents: list[str] = []
     for upload in files or []:
@@ -173,7 +190,8 @@ async def research_chat(
             pages = extract_pdf(await upload.read())
         except Exception as exc:  # pragma: no cover - parser exceptions vary by file.
             raise HTTPException(
-                status_code=400, detail=f"{upload.filename} could not be processed"
+                status_code=400,
+                detail=f"{upload.filename} could not be processed",
             ) from exc
         text = "\n".join(page.text for page in pages if page.text.strip())
         if text:
@@ -190,6 +208,44 @@ async def research_chat(
     except openai.APIError as exc:
         raise HTTPException(status_code=502, detail="Research provider request failed") from exc
     return result.model_dump(mode="json")
+
+
+@router.post("/v1/audio/transcriptions", tags=["audio"])
+async def transcribe_audio(
+    file: Annotated[UploadFile, File()],
+    settings: SettingsContext,
+    language: Annotated[str, Form(min_length=2, max_length=5)] = "es",
+    x_aristoteles_proxy: Annotated[str | None, Header()] = None,
+) -> dict[str, str]:
+    """Transcribe a short microphone recording without exposing the OpenAI key."""
+    _verify_proxy_secret(settings, x_aristoteles_proxy)
+    content_type = (file.content_type or "").split(";", 1)[0].lower()
+    if content_type not in SUPPORTED_AUDIO_TYPES:
+        raise HTTPException(status_code=415, detail="Unsupported audio format")
+
+    audio = await file.read(MAX_AUDIO_BYTES + 1)
+    if not audio:
+        raise HTTPException(status_code=400, detail="Audio file is empty")
+    if len(audio) > MAX_AUDIO_BYTES:
+        raise HTTPException(status_code=413, detail="Audio file is too large")
+
+    filename = file.filename or f"recording.{content_type.rsplit('/', 1)[-1]}"
+    try:
+        text = await WhisperTranscriptionService(settings).transcribe(
+            filename=filename,
+            content_type=content_type,
+            audio=audio,
+            language=language,
+        )
+    except RuntimeError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="Transcription service is not available",
+        ) from exc
+    except Exception as exc:  # OpenAI transport and API errors are safe-wrapped here.
+        raise HTTPException(status_code=502, detail="Audio transcription failed") from exc
+
+    return {"text": text, "model": settings.openai_transcribe_model}
 
 
 @router.post("/v1/cases", status_code=status.HTTP_201_CREATED)

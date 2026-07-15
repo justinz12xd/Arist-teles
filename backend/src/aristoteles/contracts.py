@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from enum import StrEnum
 from typing import Any, Literal
 
@@ -34,6 +36,7 @@ class ResearchChatResponse(BaseModel):
     model: str = Field(min_length=1)
     stages: list[str] = Field(default_factory=lambda: ["router", "research", "citations"])
     needs_review: bool = False
+    roadmap: DecisionRoadmap | None = None
 
 
 class RunStatus(StrEnum):

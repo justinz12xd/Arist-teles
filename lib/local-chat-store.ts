@@ -2,6 +2,7 @@ type LocalChatMessage = {
   id: string;
   role: "user" | "assistant";
   content: string;
+  attachments?: Array<{ name: string; size: number }>;
   result?: unknown;
   createdAt: string;
 };
@@ -52,6 +53,7 @@ export function saveLocalChatMessage(input: {
   sessionId: string | null;
   role: "user" | "assistant";
   content: string;
+  attachments?: Array<{ name: string; size: number }>;
   result?: unknown;
 }) {
   const now = new Date().toISOString();
@@ -63,6 +65,7 @@ export function saveLocalChatMessage(input: {
     id: crypto.randomUUID(),
     role: input.role,
     content: input.content,
+    attachments: input.attachments,
     result: input.result,
     createdAt: now,
   };

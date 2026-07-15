@@ -1,7 +1,8 @@
 "use client";
 
 import { AIVoiceInput } from "@/components/ui/ai-voice-input";
-import { DecisionRoadmap } from "@/components/decision/DecisionRoadmap";
+import { MarkdownAnswer } from "@/components/chat/MarkdownAnswer";
+import { StructuredResponse } from "@/components/chat/StructuredResponse";
 import { agentDemoUrl, chatResearchUrl } from "@/lib/backend-api";
 import { saveChatMessage } from "@/lib/chat-store";
 import {
@@ -11,7 +12,7 @@ import {
   type LocalChatSession,
 } from "@/lib/local-chat-store";
 import { supabase } from "@/lib/supabase";
-import type { DecisionRoadmapData } from "@/lib/aristoteles-contracts";
+import type { AgentResult } from "@/lib/chat-types";
 import {
   ArrowUp,
   Copy,
@@ -31,51 +32,11 @@ import {
 } from "lucide-react";
 import { ChangeEvent, FormEvent, KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
 
-type AgentResult = {
-  mode?: "web" | "documents" | "hybrid";
-  answer?: string;
-  citations?: Array<{
-    id: string;
-    title: string;
-    url: string;
-  }>;
-  document?: {
-    filename: string;
-    pages: number;
-    quality_score: number;
-    previews: Array<{
-      document?: string;
-      page_number: number;
-      method: string;
-      preview: string;
-    }>;
-  };
-  research?: {
-    evidence: Array<{ id: string; document: string; page: number; quote: string }>;
-  };
-  comparison?: Array<{
-    provider_id: string;
-    weighted_score?: number;
-    advantages: string[];
-    disadvantages: string[];
-  }>;
-  decision?: {
-    outcome: "recommendation" | "needs_review";
-    recommended_provider_id: string | null;
-    summary: string;
-    risk_items: string[];
-    confidence: {
-      score: number;
-      band: "high" | "medium" | "low";
-    };
-  };
-  roadmap?: DecisionRoadmapData;
-};
-
 type ChatMessage = {
   id: string;
   role: "user" | "assistant";
   content: string;
+  attachments?: Array<{ name: string; size: number }>;
   result?: AgentResult;
 };
 
@@ -286,7 +247,8 @@ export function ChatExperience() {
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [authStatus, setAuthStatus] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatColumnRef = useRef<HTMLElement>(null);
+  const messagesViewportRef = useRef<HTMLDivElement>(null);
   const chatSessionIdRef = useRef<string | null>(null);
   const localChatSessionIdRef = useRef<string | null>(null);
   const persistQueueRef = useRef(Promise.resolve());
@@ -319,8 +281,44 @@ export function ChatExperience() {
   }, [historySearch, localChatSessionId, localSessions]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    const frame = window.requestAnimationFrame(() => {
+      const viewport = messagesViewportRef.current;
+      const latestMessage = messages.at(-1);
+      if (!viewport || !latestMessage) return;
+
+      const latestElement = viewport.querySelector<HTMLElement>(
+        `[data-message-id="${latestMessage.id}"]`,
+      );
+      const top = latestElement ? Math.max(0, latestElement.offsetTop - 16) : viewport.scrollHeight;
+      viewport.scrollTo({
+        top: latestMessage.role === "assistant" ? top : viewport.scrollHeight,
+        behavior: "smooth",
+      });
+    });
+    return () => window.cancelAnimationFrame(frame);
   }, [messages]);
+
+  useEffect(() => {
+    const chatColumn = chatColumnRef.current;
+    if (!chatColumn) return;
+
+    function redirectTrackpadScroll(event: WheelEvent) {
+      const viewport = messagesViewportRef.current;
+      if (!viewport || Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return;
+      if (viewport.scrollHeight <= viewport.clientHeight) return;
+
+      const unit = event.deltaMode === WheelEvent.DOM_DELTA_LINE
+        ? 16
+        : event.deltaMode === WheelEvent.DOM_DELTA_PAGE
+          ? viewport.clientHeight
+          : 1;
+      event.preventDefault();
+      viewport.scrollTop += event.deltaY * unit;
+    }
+
+    chatColumn.addEventListener("wheel", redirectTrackpadScroll, { passive: false });
+    return () => chatColumn.removeEventListener("wheel", redirectTrackpadScroll);
+  }, []);
 
   useEffect(() => {
     setLocalSessions(listLocalChatSessions());
@@ -381,6 +379,7 @@ export function ChatExperience() {
         id: message.id,
         role: message.role,
         content: message.content,
+        attachments: message.attachments,
         result: message.result as AgentResult | undefined,
       })),
     );
@@ -430,11 +429,17 @@ export function ChatExperience() {
     }
   }
 
-  function persistMessage(role: "user" | "assistant", content: string, result?: AgentResult) {
+  function persistMessage(
+    role: "user" | "assistant",
+    content: string,
+    result?: AgentResult,
+    attachments?: Array<{ name: string; size: number }>,
+  ) {
     const localSessionId = saveLocalChatMessage({
       sessionId: localChatSessionIdRef.current,
       role,
       content,
+      attachments,
       result,
     });
     localChatSessionIdRef.current = localSessionId;
@@ -456,16 +461,18 @@ export function ChatExperience() {
     });
   }
 
-  function appendUserMessage(content: string) {
+  function appendUserMessage(content: string, attachedFiles: File[] = []) {
+    const attachments = attachedFiles.map((file) => ({ name: file.name, size: file.size }));
     setMessages((current) => [
       ...current,
       {
         id: crypto.randomUUID(),
         role: "user",
         content,
+        attachments,
       },
     ]);
-    persistMessage("user", content);
+    persistMessage("user", content, undefined, attachments);
   }
 
   function appendAssistantMessage(content: string, result?: AgentResult) {
@@ -487,12 +494,14 @@ export function ChatExperience() {
     }
 
     const cleanQuestion = question.trim();
-    appendUserMessage(cleanQuestion);
+    const attachedFiles = files;
+    appendUserMessage(cleanQuestion, attachedFiles);
     setQuestion("");
+    setFiles([]);
     setError(null);
 
-    if (!files.length) {
-      appendAssistantMessage(conversationalAnswer(cleanQuestion, files));
+    if (!attachedFiles.length) {
+      appendAssistantMessage(conversationalAnswer(cleanQuestion, attachedFiles));
       return;
     }
 
@@ -502,7 +511,7 @@ export function ChatExperience() {
       "objective",
       `Conversa sobre todas las propuestas, compara beneficios y desventajas, elige la mejor y explica por que. Pregunta: ${cleanQuestion}`,
     );
-    for (const file of files) {
+    for (const file of attachedFiles) {
       formData.append("files", file);
     }
 
@@ -520,7 +529,7 @@ export function ChatExperience() {
         result,
       );
     } catch {
-      const result = fallbackAnswer(cleanQuestion, files);
+      const result = fallbackAnswer(cleanQuestion, attachedFiles);
       setError("Usando respuesta local. Inicia el backend para comparar todas las propuestas.");
       appendAssistantMessage(result.answer ?? "No pude generar una respuesta.", result);
     } finally {
@@ -535,21 +544,17 @@ export function ChatExperience() {
     }
 
     const cleanQuestion = question.trim();
-    appendUserMessage(cleanQuestion);
+    const attachedFiles = files;
+    appendUserMessage(cleanQuestion, attachedFiles);
     setQuestion("");
+    setFiles([]);
     setIsSending(true);
     setError(null);
 
-    if (!files.length) {
-      appendAssistantMessage(answerWithoutDocuments(cleanQuestion));
-      setIsSending(false);
-      return;
-    }
-
     const formData = new FormData();
     formData.set("objective", cleanQuestion);
-    formData.set("mode", files.length ? "hybrid" : "web");
-    for (const file of files) {
+    formData.set("mode", attachedFiles.length ? "hybrid" : "web");
+    for (const file of attachedFiles) {
       formData.append("files", file);
     }
 
@@ -564,7 +569,7 @@ export function ChatExperience() {
       const result = (await response.json()) as AgentResult;
       appendAssistantMessage(result.answer ?? result.decision?.summary ?? "No pude generar una respuesta.", result);
     } catch {
-      const result = fallbackAnswer(cleanQuestion, files);
+      const result = fallbackAnswer(cleanQuestion, attachedFiles);
       setError("No pude conectar con el investigador. Verifica el backend y la configuración de OpenAI.");
       appendAssistantMessage(result.answer ?? "No pude generar una respuesta.", result);
     } finally {
@@ -573,12 +578,12 @@ export function ChatExperience() {
   }
 
   return (
-    <main className="relative min-h-[100svh] overflow-hidden bg-black text-white">
+    <main className="relative h-[100dvh] overflow-hidden bg-black text-white">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_18%,rgb(216_177_95/0.08),transparent_28%),radial-gradient(circle_at_78%_10%,rgb(139_92_246/0.06),transparent_24%)]" />
       <div className="orbit-engraving opacity-[0.12]" aria-hidden />
 
-      <div className="relative z-10 flex min-h-[100svh]">
-        <aside className="hidden w-[252px] shrink-0 flex-col border-r border-white/10 bg-[#070707] px-2 py-3 md:flex">
+      <div className="relative z-10 flex h-full min-h-0">
+        <aside className="hidden h-full w-[252px] shrink-0 flex-col border-r border-white/10 bg-[#070707] px-2 py-3 md:flex">
           <div className="mb-4 flex items-center justify-between px-2">
             <a href="/" className="flex h-11 w-11 items-center justify-center rounded-full text-white transition-colors hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--accent-cyan)]" aria-label="Volver al inicio">
               <Scale size={18} className="text-[var(--accent-cyan)]" />
@@ -604,7 +609,7 @@ export function ChatExperience() {
             ))}
           </nav>
 
-          <div className="mt-6 flex-1 overflow-hidden px-1">
+          <div className="scrollbar-hidden mt-6 min-h-0 flex-1 overflow-y-auto px-1">
             <p className="mb-2 px-2 text-xs text-[var(--primary-44)]">Chats</p>
             <label className="mb-3 flex items-center gap-2 rounded-lg border border-white/10 bg-black/20 px-3 py-2">
               <Search size={14} className="text-[var(--primary-44)]" />
@@ -646,8 +651,8 @@ export function ChatExperience() {
           </div>
         </aside>
 
-        <section className="flex min-w-0 flex-1 flex-col">
-          <header className="flex h-14 items-center justify-between px-4 pt-[env(safe-area-inset-top)] sm:px-6">
+        <section ref={chatColumnRef} className="flex h-full min-w-0 flex-1 flex-col">
+          <header className="z-20 flex min-h-14 shrink-0 items-center justify-between border-b border-white/[0.06] bg-black/85 px-4 pt-[env(safe-area-inset-top)] sm:px-6">
             <div className="flex items-center gap-2 text-sm font-medium text-white">
               Aristoteles <span className="text-[var(--primary-44)]">chat</span>
             </div>
@@ -734,8 +739,8 @@ export function ChatExperience() {
             </div>
           )}
 
-          <div className="flex min-h-0 flex-1 flex-col px-3 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:px-6">
-            <div className="mx-auto flex min-h-0 w-full max-w-4xl flex-1 flex-col">
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-3 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:px-6">
+            <div className="mx-auto flex min-h-0 w-full max-w-4xl flex-1 flex-col overflow-hidden">
               {messages.length === 0 ? (
                 <div className="flex min-h-0 flex-1 flex-col justify-end pb-9 text-center">
                   <div className="mx-auto mb-5 flex h-11 w-11 items-center justify-center rounded-full border border-[rgb(216_177_95/0.24)] bg-[rgb(216_177_95/0.08)]">
@@ -759,16 +764,33 @@ export function ChatExperience() {
                   </div>
                 </div>
               ) : (
-                <div className="mb-6 min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain pr-1 scrollbar-thin">
+                <div
+                  ref={messagesViewportRef}
+                  className="scrollbar-hidden relative mb-4 min-h-0 flex-1 touch-pan-y space-y-4 overflow-y-auto overscroll-contain pr-1"
+                >
                   {messages.map((message) => (
-                    <div key={message.id} className={message.role === "user" ? "ml-auto max-w-2xl" : "mr-auto max-w-3xl"}>
+                    <div
+                      key={message.id}
+                      data-message-id={message.id}
+                      className={message.role === "user" ? "ml-auto max-w-2xl" : "mr-auto max-w-3xl"}
+                    >
                       <div className={`break-words rounded-2xl border px-4 py-3 text-sm leading-6 ${
                         message.role === "user"
                           ? "border-white/10 bg-white/10 text-white"
                           : "border-[rgb(216_177_95/0.18)] bg-black/30 text-[var(--primary-80)]"
                       }`}>
                         <div className="flex items-start gap-3">
-                          <p className="min-w-0 flex-1 whitespace-pre-wrap">{message.content}</p>
+                          <div className="min-w-0 flex-1">
+                            {message.role === "assistant" ? (
+                              message.result ? (
+                                <StructuredResponse content={message.content} result={message.result} />
+                              ) : (
+                                <MarkdownAnswer content={message.content} />
+                              )
+                            ) : (
+                              <p className="whitespace-pre-wrap">{message.content}</p>
+                            )}
+                          </div>
                           <button
                             type="button"
                             onClick={() => copyMessage(message)}
@@ -784,84 +806,20 @@ export function ChatExperience() {
                             copiado
                           </p>
                         )}
-                        {message.result && (
-                          <div className="mt-4 space-y-3 border-t border-white/10 pt-4">
-                            <div className="flex flex-wrap gap-2 text-xs text-[var(--primary-44)]">
-                              <span>{message.result.mode === "hybrid" ? "web + documentos" : "web"}</span>
-                              {message.result.document && <span>{message.result.document.pages} páginas</span>}
-                              <span>{message.result.citations?.length ?? 0} fuentes</span>
-                              {message.result.decision && (
-                                <span>confianza {Math.round(message.result.decision.confidence.score * 100)}%</span>
-                              )}
-                            </div>
-                            {message.result.decision?.recommended_provider_id && (
-                              <div className="rounded-lg border border-[rgb(34_211_238/0.24)] bg-[rgb(34_211_238/0.08)] p-3">
-                                <p className="text-xs uppercase tracking-[0.18em] text-[var(--accent-cyan)]">
-                                  ganadora
-                                </p>
-                                <h3 className="mt-2 text-base font-medium text-white">
-                                  {message.result.decision?.recommended_provider_id}
-                                </h3>
-                                <p className="mt-2 text-xs leading-5 text-[var(--primary-70)]">
-                                  {message.result.decision?.summary}
-                                </p>
-                                {(message.result.decision?.risk_items.length ?? 0) > 0 && (
-                                  <div className="mt-3 space-y-1">
-                                    <p className="text-xs uppercase tracking-[0.14em] text-[var(--primary-44)]">
-                                      revisar antes de decidir
-                                    </p>
-                                    {message.result.decision?.risk_items.slice(0, 3).map((risk) => (
-                                      <p key={risk} className="text-xs leading-5 text-amber-200">
-                                        {risk}
-                                      </p>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                            {message.result.citations?.map((citation) => (
-                              <a
-                                key={citation.id}
-                                href={citation.url}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="block rounded-lg border border-white/10 bg-white/[0.03] p-3 transition-colors hover:border-[rgb(216_177_95/0.35)]"
+                        {message.attachments && message.attachments.length > 0 && (
+                          <div className="mt-3 flex flex-wrap gap-2 border-t border-white/10 pt-3">
+                            {message.attachments.map((attachment) => (
+                              <span
+                                key={`${message.id}-${attachment.name}`}
+                                className="inline-flex max-w-full items-center gap-2 rounded-lg border border-white/10 bg-black/20 px-2.5 py-1.5 text-xs text-[var(--primary-60)]"
                               >
-                                <div className="mb-1 flex items-center gap-2 text-xs text-[var(--primary-44)]">
-                                  <Search size={12} className="text-[var(--accent-cyan)]" />
-                                  Fuente verificable
-                                </div>
-                                <p className="text-xs leading-5 text-[var(--primary-60)]">{citation.title}</p>
-                              </a>
+                                <FileText size={12} className="shrink-0 text-[var(--accent-cyan)]" />
+                                <span className="truncate">{attachment.name}</span>
+                                <span className="shrink-0 text-[var(--primary-44)]">
+                                  {Math.max(1, Math.round(attachment.size / 1024))} KB
+                                </span>
+                              </span>
                             ))}
-                            {message.result.research?.evidence.slice(0, 3).map((item) => (
-                              <div key={item.id} className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
-                                <div className="mb-1 flex items-center gap-2 text-xs text-[var(--primary-44)]">
-                                  <FileText size={12} className="text-[var(--accent-cyan)]" />
-                                  {item.document} · pagina {item.page}
-                                </div>
-                                <p className="text-xs leading-5 text-[var(--primary-60)]">{item.quote}</p>
-                              </div>
-                            ))}
-                            {message.result.comparison?.slice(0, 3).map((item) => (
-                              <div key={item.provider_id} className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
-                                <div className="mb-2 flex items-center justify-between gap-3">
-                                  <p className="text-xs font-medium text-white">{item.provider_id}</p>
-                                  {typeof item.weighted_score === "number" && (
-                                    <span className="font-mono text-[0.68rem] text-[var(--accent-cyan)]">
-                                      {Math.round(item.weighted_score * 100)}%
-                                    </span>
-                                  )}
-                                </div>
-                                <p className="text-xs leading-5 text-emerald-200">
-                                  Beneficios: {item.advantages.join(", ") || "sin ventaja clara"}
-                                </p>
-                                <p className="mt-1 text-xs leading-5 text-amber-200">
-                                  Desventajas: {item.disadvantages.join(", ") || "sin desventaja clara"}
-                                </p>
-                              </div>
-                            ))}
-                            {message.result.roadmap && <DecisionRoadmap roadmap={message.result.roadmap} />}
                           </div>
                         )}
                       </div>
@@ -875,11 +833,10 @@ export function ChatExperience() {
                       </span>
                     </div>
                   )}
-                  <div ref={messagesEndRef} />
                 </div>
               )}
 
-              <form onSubmit={onSubmit} className="rounded-[1.75rem] border border-white/10 bg-[#212121] p-3 shadow-[0_18px_80px_rgb(0_0_0/0.35)]">
+              <form onSubmit={onSubmit} className="shrink-0 rounded-[1.75rem] border border-white/10 bg-[#212121] p-3 shadow-[0_18px_80px_rgb(0_0_0/0.35)]">
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -933,8 +890,9 @@ export function ChatExperience() {
                       setQuestion((current) => `${current}${current ? " " : ""}${text}`);
                       setError(null);
                     }}
+                    onError={setError}
                     onUnsupported={() => {
-                      setError("Tu navegador no soporta dictado por voz. Prueba con Chrome o Edge.");
+                      setError("Tu navegador no permite grabar audio. Prueba con Chrome, Edge o Safari.");
                     }}
                   />
                   <button
@@ -959,8 +917,8 @@ export function ChatExperience() {
                 </div>
               </form>
 
-              {error && <p className="mt-4 text-center text-xs text-amber-200">{error}</p>}
-              <p className="mt-4 text-center text-xs text-[var(--primary-44)]">
+              {error && <p className="mt-4 shrink-0 text-center text-xs text-amber-200">{error}</p>}
+              <p className="mt-4 shrink-0 text-center text-xs text-[var(--primary-44)]">
                 Aristoteles puede equivocarse. Verifica siempre las citas antes de decidir.
               </p>
             </div>

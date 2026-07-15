@@ -16,5 +16,6 @@ def test_agent_demo_route_is_registered() -> None:
 
     assert "/v1/demo/agent" in paths
     assert "/v1/chat/research" in paths
+    assert "/v1/audio/transcriptions" in paths
     assert "/v1/cases" in paths
     assert "/v1/runs/{run_id}/report" in paths

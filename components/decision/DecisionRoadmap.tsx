@@ -100,7 +100,7 @@ export function DecisionRoadmap({ roadmap }: DecisionRoadmapProps) {
         </div>
       </div>
 
-      <div className="overflow-x-auto px-4 pb-5 pt-4 sm:px-5">
+      <div className="scrollbar-hidden overflow-x-auto px-4 pb-5 pt-4 sm:px-5">
         <div className="relative min-w-[720px]">
           <div className="mx-auto flex w-fit items-center gap-2 rounded-full border border-white/10 bg-black px-3 py-1.5 text-xs text-white/60">
             <GitBranch size={13} className="text-[var(--accent-gold)]" aria-hidden />
