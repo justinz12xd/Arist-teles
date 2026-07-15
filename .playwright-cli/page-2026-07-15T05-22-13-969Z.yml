@@ -1,0 +1,239 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e8]:
+    - generic [ref=e9]:
+      - link "ORBITAL" [ref=e10] [cursor=pointer]:
+        - /url: "#"
+        - img [ref=e11]
+        - text: ORBITAL
+      - navigation [ref=e17]:
+        - link "Misión" [ref=e18] [cursor=pointer]:
+          - /url: "#about"
+        - link "Bitácora" [ref=e19] [cursor=pointer]:
+          - /url: "#timeline"
+        - link "Rutas" [ref=e20] [cursor=pointer]:
+          - /url: "#tracks"
+        - link "Tripulación" [ref=e21] [cursor=pointer]:
+          - /url: "#speakers"
+        - link "FAQ" [ref=e22] [cursor=pointer]:
+          - /url: "#faq"
+      - link "Inscribirse" [ref=e23] [cursor=pointer]:
+        - /url: "#cta"
+  - main [ref=e24]:
+    - generic [ref=e25]:
+      - generic [ref=e26]:
+        - heading "Hackathon Estación Órbita" [level=1] [ref=e27]
+        - paragraph [ref=e28]: 12.10.2026 — señal abierta — cuenta regresiva activa
+      - 'timer "Cuenta regresiva: cargando" [ref=e30]'
+      - generic [ref=e364]:
+        - heading "72 horas para llevar una idea de cero a órbita." [level=2] [ref=e365]:
+          - generic [ref=e366]: "72"
+          - generic [ref=e367]: horas
+          - generic [ref=e368]: para
+          - generic [ref=e369]: llevar
+          - generic [ref=e370]: una
+          - generic [ref=e371]: idea
+          - generic [ref=e372]: de
+          - generic [ref=e373]: cero
+          - generic [ref=e374]: a
+          - generic [ref=e375]: órbita.
+        - generic [ref=e376]:
+          - link "Reservar asiento" [ref=e377] [cursor=pointer]:
+            - /url: "#cta"
+            - img [ref=e378]
+            - text: Reservar asiento
+          - link "Escuchar la misión" [ref=e383] [cursor=pointer]:
+            - /url: "#about"
+            - img [ref=e384]
+            - text: Escuchar la misión
+    - generic [ref=e390]:
+      - generic [ref=e391]:
+        - paragraph [ref=e392]: "[ 01 · misión ]"
+        - heading "Tres días fuera de la atmósfera de lo predecible." [level=2] [ref=e394]
+        - paragraph [ref=e395]: "Durante un fin de semana, la estación abre sus compuertas a equipos que quieran construir con IA sin red de seguridad. Mentores en órbita, hardware a bordo y una regla: lo que se lanza, se lanza funcionando."
+      - generic [ref=e396]:
+        - generic [ref=e398]:
+          - paragraph [ref=e399]: 72h
+          - paragraph [ref=e400]: de misión continua
+        - generic [ref=e402]:
+          - paragraph [ref=e403]: "300"
+          - paragraph [ref=e404]: asientos en cabina
+        - generic [ref=e406]:
+          - paragraph [ref=e407]: "4"
+          - paragraph [ref=e408]: rutas de exploración
+        - generic [ref=e410]:
+          - paragraph [ref=e411]: $25k
+          - paragraph [ref=e412]: en combustible (premios)
+    - generic [ref=e413]:
+      - generic [ref=e414]:
+        - paragraph [ref=e415]: "[ 02 · bitácora ]"
+        - heading "La cuenta regresiva ya empezó." [level=2] [ref=e417]
+      - generic [ref=e418]:
+        - generic [ref=e419]:
+          - paragraph [ref=e422]: VIE 18:00
+          - generic [ref=e423]:
+            - img [ref=e424]
+            - heading "Señal de apertura" [level=3] [ref=e430]
+          - paragraph [ref=e431]: Briefing de la misión, formación de tripulaciones y apertura de compuertas.
+        - generic [ref=e432]:
+          - paragraph [ref=e435]: VIE 21:00
+          - generic [ref=e436]:
+            - img [ref=e437]
+            - heading "Acople de equipos" [level=3] [ref=e442]
+          - paragraph [ref=e443]: Pitch relámpago de ideas. Los equipos se acoplan y reservan su módulo.
+        - generic [ref=e444]:
+          - paragraph [ref=e447]: SÁB 10:00
+          - generic [ref=e448]:
+            - img [ref=e449]
+            - heading "Construcción en gravedad cero" [level=3] [ref=e451]
+          - paragraph [ref=e452]: 24 horas de build ininterrumpido con mentores rotando por cabinas.
+        - generic [ref=e453]:
+          - paragraph [ref=e456]: DOM 15:00
+          - generic [ref=e457]:
+            - img [ref=e458]
+            - heading "Ventana de lanzamiento" [level=3] [ref=e463]
+          - paragraph [ref=e464]: Congelamiento de código. Cada equipo presenta su demo en vivo, sin slides.
+        - generic [ref=e465]:
+          - paragraph [ref=e468]: DOM 19:00
+          - generic [ref=e469]:
+            - img [ref=e470]
+            - heading "Reentrada" [level=3] [ref=e476]
+          - paragraph [ref=e477]: Veredicto del jurado, premios y transmisión de cierre desde el puente.
+    - generic [ref=e478]:
+      - generic [ref=e479]:
+        - paragraph [ref=e480]: "[ 03 · rutas ]"
+        - heading "Cuatro trayectorias. Elegí la tuya." [level=2] [ref=e482]
+      - generic [ref=e483]:
+        - generic [ref=e485]:
+          - img [ref=e486]
+          - heading "Agentes autónomos" [level=3] [ref=e494]
+          - paragraph [ref=e495]: Sistemas que deciden, planifican y ejecutan sin piloto humano.
+        - generic [ref=e497]:
+          - img [ref=e498]
+          - heading "Datos orbitales" [level=3] [ref=e504]
+          - paragraph [ref=e505]: Herramientas sobre datos satelitales, clima y observación terrestre.
+        - generic [ref=e507]:
+          - img [ref=e508]
+          - heading "IA con propósito" [level=3] [ref=e511]
+          - paragraph [ref=e512]: Salud, educación y accesibilidad. Impacto medible en 72 horas.
+        - generic [ref=e514]:
+          - img [ref=e515]
+          - heading "Mundos generativos" [level=3] [ref=e517]
+          - paragraph [ref=e518]: Experiencias, juegos y narrativas creadas en tiempo real.
+    - generic [ref=e519]:
+      - generic [ref=e520]:
+        - paragraph [ref=e521]: "[ 04 · combustible ]"
+        - heading "Premios que sostienen la órbita." [level=2] [ref=e523]
+      - generic [ref=e524]:
+        - generic [ref=e526]:
+          - paragraph [ref=e527]: Primer lugar
+          - paragraph [ref=e528]: $12.000
+          - paragraph [ref=e529]: más incubación de 3 meses en la estación
+        - generic [ref=e531]:
+          - paragraph [ref=e532]: Segundo lugar
+          - paragraph [ref=e533]: $8.000
+          - paragraph [ref=e534]: más créditos de cómputo para seguir en órbita
+        - generic [ref=e536]:
+          - paragraph [ref=e537]: Tercer lugar
+          - paragraph [ref=e538]: $5.000
+          - paragraph [ref=e539]: más mentoría técnica de la tripulación senior
+    - generic [ref=e540]:
+      - generic [ref=e541]:
+        - paragraph [ref=e542]: "[ 05 · tripulación ]"
+        - heading "Quiénes pilotean la misión." [level=2] [ref=e544]
+      - generic [ref=e545]:
+        - generic [ref=e547]:
+          - generic [ref=e548]: VA
+          - heading "Vera Aldana" [level=3] [ref=e549]
+          - paragraph [ref=e550]: Comandante · IA aplicada
+        - generic [ref=e552]:
+          - generic [ref=e553]: TN
+          - heading "Tomás Nakamura" [level=3] [ref=e554]
+          - paragraph [ref=e555]: Ingeniería de agentes
+        - generic [ref=e557]:
+          - generic [ref=e558]: LM
+          - heading "Lucía Meyer" [level=3] [ref=e559]
+          - paragraph [ref=e560]: Sistemas distribuidos
+        - generic [ref=e562]:
+          - generic [ref=e563]: RC
+          - heading "Rafael Costa" [level=3] [ref=e564]
+          - paragraph [ref=e565]: Diseño de producto
+    - generic [ref=e566]:
+      - generic [ref=e567]:
+        - paragraph [ref=e568]: "[ 06 · aliados ]"
+        - heading "Estaciones amigas." [level=2] [ref=e570]
+      - generic [ref=e571]:
+        - paragraph [ref=e573]: NOVA LABS
+        - paragraph [ref=e575]: HELIO CLOUD
+        - paragraph [ref=e577]: VECTOR VC
+        - paragraph [ref=e579]: KUIPER DEV
+        - paragraph [ref=e581]: ANDRÓMEDA
+        - paragraph [ref=e583]: PULSAR AI
+    - generic [ref=e584]:
+      - generic [ref=e585]:
+        - paragraph [ref=e586]: "[ 07 · transmisiones ]"
+        - heading "Preguntas desde tierra." [level=2] [ref=e588]
+      - generic [ref=e589]:
+        - generic [ref=e590]:
+          - button "¿Necesito equipo para inscribirme?" [expanded] [ref=e591]:
+            - generic [ref=e592]: ¿Necesito equipo para inscribirme?
+            - img [ref=e593]
+          - paragraph [ref=e596]: "No. Podés subir a bordo en solitario: la noche de apertura tiene una ronda de acople donde se forman tripulaciones de 2 a 5 personas."
+        - generic [ref=e597]:
+          - button "¿Es presencial o remoto?" [ref=e598]:
+            - generic [ref=e599]: ¿Es presencial o remoto?
+            - img [ref=e600]
+          - generic:
+            - paragraph: Híbrido. La estación física tiene 300 asientos; el canal remoto transmite mentorías y acepta demos en vivo por la misma ventana de lanzamiento.
+        - generic [ref=e602]:
+          - button "¿Qué nivel técnico se espera?" [ref=e603]:
+            - generic [ref=e604]: ¿Qué nivel técnico se espera?
+            - img [ref=e605]
+          - generic:
+            - paragraph: Cualquiera que pueda llevar una idea a demo. Hay rutas para perfiles de producto y diseño, no solo para quienes escriben código.
+        - generic [ref=e607]:
+          - button "¿Quién se queda con lo construido?" [ref=e608]:
+            - generic [ref=e609]: ¿Quién se queda con lo construido?
+            - img [ref=e610]
+          - generic:
+            - paragraph: Tu equipo. Todo el código y la propiedad intelectual quedan en manos de quienes lo crearon. La estación solo pide una demo pública.
+        - generic [ref=e612]:
+          - button "¿Cuánto cuesta participar?" [ref=e613]:
+            - generic [ref=e614]: ¿Cuánto cuesta participar?
+            - img [ref=e615]
+          - generic:
+            - paragraph: Nada. El asiento se reserva con inscripción aprobada. El combustible lo ponen los aliados.
+    - generic [ref=e618]:
+      - generic [ref=e619]:
+        - heading "La compuerta se cierra pronto." [level=2] [ref=e620]
+        - paragraph [ref=e621]: Reservá tu asiento antes de que la ventana de lanzamiento se cierre. La próxima órbita pasa en un año.
+      - generic [ref=e624]:
+        - paragraph [ref=e625]: "> estación órbita · consola de embarque v2.6"
+        - paragraph [ref=e626]: "> verificando ventana de lanzamiento......... ok"
+        - paragraph [ref=e627]: "> asientos disponibles: 117 / 300"
+        - paragraph [ref=e628]: "> estado de la señal: ABIERTA"
+        - paragraph [ref=e629]: "> ▊"
+      - link "Iniciar secuencia de embarque" [ref=e631] [cursor=pointer]:
+        - /url: "#"
+  - contentinfo [ref=e632]:
+    - generic [ref=e633]:
+      - generic [ref=e634]:
+        - img [ref=e635]
+        - generic [ref=e641]: ORBITAL
+        - generic [ref=e642]: fin de la transmisión
+      - navigation [ref=e643]:
+        - link "Misión" [ref=e644] [cursor=pointer]:
+          - /url: "#about"
+        - link "FAQ" [ref=e645] [cursor=pointer]:
+          - /url: "#faq"
+        - link "Código de conducta" [ref=e646] [cursor=pointer]:
+          - /url: "#"
+      - generic [ref=e647]:
+        - link "GITHUB" [ref=e648] [cursor=pointer]:
+          - /url: "#"
+        - link "X" [ref=e649] [cursor=pointer]:
+          - /url: "#"
+        - link "LINKEDIN" [ref=e650] [cursor=pointer]:
+          - /url: "#"
+    - paragraph [ref=e651]: © 2026 Estación Órbita. Construido en gravedad cero.
+  - button "Open Next.js Dev Tools" [ref=e657] [cursor=pointer]:
+    - img [ref=e658]
