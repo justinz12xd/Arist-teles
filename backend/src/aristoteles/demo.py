@@ -161,10 +161,9 @@ def _select_synthetic_options(objective: str, text: str, providers: list[str]) -
         SYNTHETIC_OPTIONS[0],
     )
     options = [dict(option) for option in domain["options"]]
-    if providers:
-        for index, provider in enumerate(providers):
-            if index < len(options):
-                options[index] = {**options[index], "provider_id": provider}
+    if len(providers) >= len(options):
+        for index in range(len(options)):
+            options[index] = {**options[index], "provider_id": providers[index]}
     return options[: max(2, min(3, len(options)))]
 
 

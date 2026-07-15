@@ -3,6 +3,8 @@
 import { AIVoiceInput } from "@/components/ui/ai-voice-input";
 import { DecisionRoadmap } from "@/components/decision/DecisionRoadmap";
 import { agentDemoUrl, chatResearchUrl } from "@/lib/backend-api";
+import { saveChatMessage } from "@/lib/chat-store";
+import { supabase } from "@/lib/supabase";
 import type { DecisionRoadmapData } from "@/lib/aristoteles-contracts";
 import {
   ArrowUp,
@@ -115,6 +117,20 @@ function answerWithoutDocuments(question: string) {
     return "Puedo comparar proveedores, empresas o apps por precio, garantia, plazo, cumplimiento y riesgo. Si adjuntas varios PDFs, trato cada PDF como una alternativa y muestro beneficios, desventajas y recomendacion.";
   }
 
+  if (normalized.includes("riesgo") || normalized.includes("decidir") || normalized.includes("decision")) {
+    return [
+      "Antes de decidir revisaria estos riesgos:",
+      "",
+      "1. Costos ocultos: instalacion, soporte, renovaciones, penalidades o extras no incluidos.",
+      "2. Garantia y soporte: duracion, tiempos de respuesta, cobertura real y exclusiones.",
+      "3. Entrega e implementacion: fechas, dependencias, retrasos y capacidad de cumplir.",
+      "4. Contrato: permanencia, cancelacion, renovacion automatica, multas y responsabilidades.",
+      "5. Evidencia faltante: si una propuesta no declara algo importante, eso pesa como riesgo.",
+      "",
+      "Para elegir mejor, adjunta las propuestas en PDF y puedo comparar beneficios, desventajas, ganadora y por que.",
+    ].join("\n");
+  }
+
   if (normalized.includes("backend") || normalized.includes("api")) {
     return "El backend es FastAPI. El chat no usa rutas API de Next: llama directo a /v1/chat/research para investigar y a /v1/demo/agent para conversar con PDFs.";
   }
@@ -175,8 +191,14 @@ export function ChatExperience() {
   const [error, setError] = useState<string | null>(null);
   const [historySearch, setHistorySearch] = useState("");
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
+  const [chatSessionId, setChatSessionId] = useState<string | null>(null);
+  const [authEmail, setAuthEmail] = useState("");
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [authStatus, setAuthStatus] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatSessionIdRef = useRef<string | null>(null);
+  const persistQueueRef = useRef(Promise.resolve());
 
   const canSend = useMemo(
     () => question.trim().length > 0 && !isSending,
@@ -195,6 +217,25 @@ export function ChatExperience() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages]);
+
+  useEffect(() => {
+    if (!supabase) {
+      return;
+    }
+    void supabase.auth.getUser().then(({ data }) => {
+      setUserEmail(data.user?.email ?? null);
+    });
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUserEmail(session?.user.email ?? null);
+      if (!session) {
+        setChatSessionId(null);
+        chatSessionIdRef.current = null;
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, []);
 
   function onFilesChange(event: ChangeEvent<HTMLInputElement>) {
     const nextFiles = Array.from(event.target.files ?? []);
@@ -216,6 +257,8 @@ export function ChatExperience() {
     setMessages([]);
     setError(null);
     setCopiedMessageId(null);
+    setChatSessionId(null);
+    chatSessionIdRef.current = null;
   }
 
   async function copyMessage(message: ChatMessage) {
@@ -224,11 +267,52 @@ export function ChatExperience() {
     window.setTimeout(() => setCopiedMessageId(null), 1400);
   }
 
+  async function signInWithEmail() {
+    if (!supabase || !authEmail.trim()) {
+      return;
+    }
+    setAuthStatus("Enviando enlace...");
+    const { error } = await supabase.auth.signInWithOtp({
+      email: authEmail.trim(),
+      options: {
+        emailRedirectTo: window.location.origin + "/chat",
+      },
+    });
+    setAuthStatus(error ? "No pude enviar el enlace de acceso." : "Revisa tu correo para iniciar sesion.");
+  }
+
+  async function signOut() {
+    if (!supabase) {
+      return;
+    }
+    await supabase.auth.signOut();
+    setUserEmail(null);
+    setAuthStatus(null);
+    setChatSessionId(null);
+    chatSessionIdRef.current = null;
+  }
+
   function onQuestionKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
       event.currentTarget.form?.requestSubmit();
     }
+  }
+
+  function persistMessage(role: "user" | "assistant", content: string, result?: AgentResult) {
+    persistQueueRef.current = persistQueueRef.current.then(async () => {
+      const sessionId = await saveChatMessage({
+        sessionId: chatSessionIdRef.current,
+        title: messages[0]?.content ?? content,
+        role,
+        content,
+        result,
+      });
+      if (sessionId) {
+        chatSessionIdRef.current = sessionId;
+        setChatSessionId(sessionId);
+      }
+    });
   }
 
   function appendUserMessage(content: string) {
@@ -240,6 +324,7 @@ export function ChatExperience() {
         content,
       },
     ]);
+    persistMessage("user", content);
   }
 
   function appendAssistantMessage(content: string, result?: AgentResult) {
@@ -252,6 +337,7 @@ export function ChatExperience() {
         result,
       },
     ]);
+    persistMessage("assistant", content, result);
   }
 
   async function onConversationClick() {
@@ -312,6 +398,12 @@ export function ChatExperience() {
     setQuestion("");
     setIsSending(true);
     setError(null);
+
+    if (!files.length) {
+      appendAssistantMessage(answerWithoutDocuments(cleanQuestion));
+      setIsSending(false);
+      return;
+    }
 
     const formData = new FormData();
     formData.set("objective", cleanQuestion);
@@ -412,6 +504,41 @@ export function ChatExperience() {
             </div>
             <div className="flex items-center gap-3">
               <div className="section-label hidden sm:block">oraculo de evidencia</div>
+              {supabase && (
+                <div className="hidden items-center gap-2 lg:flex">
+                  {userEmail ? (
+                    <>
+                      <span className="max-w-48 truncate rounded-full border border-white/10 px-3 py-2 text-xs text-[var(--primary-60)]">
+                        {userEmail}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={signOut}
+                        className="min-h-9 rounded-full border border-white/10 px-3 text-xs text-[var(--primary-60)] transition-colors hover:bg-white/10 hover:text-white"
+                      >
+                        salir
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <input
+                        type="email"
+                        value={authEmail}
+                        onChange={(event) => setAuthEmail(event.target.value)}
+                        className="h-9 w-48 rounded-full border border-white/10 bg-black/30 px-3 text-xs text-white outline-none placeholder:text-[var(--primary-44)] focus:border-[var(--accent-cyan)]"
+                        placeholder="email para guardar sesion"
+                      />
+                      <button
+                        type="button"
+                        onClick={signInWithEmail}
+                        className="min-h-9 rounded-full border border-white/10 px-3 text-xs text-[var(--primary-60)] transition-colors hover:bg-white/10 hover:text-white"
+                      >
+                        entrar
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
               <button
                 type="button"
                 onClick={startNewChat}
@@ -422,6 +549,41 @@ export function ChatExperience() {
               </button>
             </div>
           </header>
+          {authStatus && (
+            <p className="px-4 text-right text-xs text-[var(--accent-cyan)] sm:px-6">{authStatus}</p>
+          )}
+          {supabase && !userEmail && (
+            <div className="flex gap-2 px-3 pb-3 lg:hidden">
+              <input
+                type="email"
+                value={authEmail}
+                onChange={(event) => setAuthEmail(event.target.value)}
+                className="h-10 min-w-0 flex-1 rounded-full border border-white/10 bg-black/30 px-3 text-xs text-white outline-none placeholder:text-[var(--primary-44)] focus:border-[var(--accent-cyan)]"
+                placeholder="email para guardar sesion"
+              />
+              <button
+                type="button"
+                onClick={signInWithEmail}
+                className="min-h-10 rounded-full border border-white/10 px-3 text-xs text-[var(--primary-60)] transition-colors hover:bg-white/10 hover:text-white"
+              >
+                entrar
+              </button>
+            </div>
+          )}
+          {supabase && userEmail && (
+            <div className="flex items-center justify-between gap-2 px-3 pb-3 lg:hidden">
+              <span className="min-w-0 truncate rounded-full border border-white/10 px-3 py-2 text-xs text-[var(--primary-60)]">
+                {userEmail}
+              </span>
+              <button
+                type="button"
+                onClick={signOut}
+                className="min-h-10 rounded-full border border-white/10 px-3 text-xs text-[var(--primary-60)] transition-colors hover:bg-white/10 hover:text-white"
+              >
+                salir
+              </button>
+            </div>
+          )}
 
           <div className="flex min-h-0 flex-1 flex-col px-3 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:px-6">
             <div className="mx-auto flex min-h-0 w-full max-w-4xl flex-1 flex-col">

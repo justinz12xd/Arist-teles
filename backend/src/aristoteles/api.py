@@ -7,6 +7,7 @@ from io import BytesIO
 from typing import Annotated, Any
 from urllib.parse import urlsplit
 
+import openai
 from fastapi import (
     APIRouter,
     Depends,
@@ -186,6 +187,8 @@ async def research_chat(
         )
     except RuntimeError as exc:
         raise HTTPException(status_code=503, detail="Research service is not available") from exc
+    except openai.APIError as exc:
+        raise HTTPException(status_code=502, detail="Research provider request failed") from exc
     return result.model_dump(mode="json")
 
 
