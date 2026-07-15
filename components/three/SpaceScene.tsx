@@ -1,12 +1,15 @@
 "use client";
 
-import { Suspense, useRef } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Canvas, useFrame, useLoader } from "@react-three/fiber";
 import { Stars } from "@react-three/drei";
-import { useScroll, useSpring, type MotionValue } from "framer-motion";
+import { useReducedMotion, useScroll, useSpring, type MotionValue } from "framer-motion";
 import * as THREE from "three";
 
 type Scroll = { progress: MotionValue<number> };
+
+const EARTH_NORMAL_SCALE = new THREE.Vector2(0.8, 0.8);
+const EARTH_SPECULAR = new THREE.Color("#8ab4d8");
 
 /* La Tierra con textura satelital NASA — océanos, continentes y nubes de relieve */
 function Earth({ progress }: Scroll) {
@@ -17,7 +20,9 @@ function Earth({ progress }: Scroll) {
     "/textures/earth_normal_2048.jpg",
     "/textures/earth_specular_2048.jpg",
   ]);
-  map.colorSpace = THREE.SRGBColorSpace;
+  useEffect(() => {
+    map.colorSpace = THREE.SRGBColorSpace;
+  }, [map]);
 
   useFrame((_, delta) => {
     const p = progress.get();
@@ -38,9 +43,9 @@ function Earth({ progress }: Scroll) {
         <meshPhongMaterial
           map={map}
           normalMap={normalMap}
-          normalScale={new THREE.Vector2(0.8, 0.8)}
+          normalScale={EARTH_NORMAL_SCALE}
           specularMap={specularMap}
-          specular={new THREE.Color("#8ab4d8")}
+          specular={EARTH_SPECULAR}
           shininess={18}
         />
       </mesh>
@@ -74,7 +79,9 @@ function Earth({ progress }: Scroll) {
 function Moon({ progress }: Scroll) {
   const ref = useRef<THREE.Mesh>(null);
   const map = useLoader(THREE.TextureLoader, "/textures/moon_1024.jpg");
-  map.colorSpace = THREE.SRGBColorSpace;
+  useEffect(() => {
+    map.colorSpace = THREE.SRGBColorSpace;
+  }, [map]);
 
   useFrame((_, delta) => {
     if (!ref.current) return;
@@ -95,24 +102,38 @@ function Moon({ progress }: Scroll) {
 }
 
 /* Sol — núcleo brillante + glare con sprite de gradiente radial */
-const glareTexture = (() => {
-  if (typeof document === "undefined") return null;
-  const c = document.createElement("canvas");
-  c.width = c.height = 256;
-  const ctx = c.getContext("2d")!;
-  const grad = ctx.createRadialGradient(128, 128, 0, 128, 128, 128);
-  grad.addColorStop(0, "rgba(255, 236, 200, 1)");
-  grad.addColorStop(0.15, "rgba(255, 180, 90, 0.7)");
-  grad.addColorStop(0.4, "rgba(255, 130, 40, 0.22)");
-  grad.addColorStop(0.7, "rgba(255, 100, 30, 0.07)");
-  grad.addColorStop(1, "rgba(255, 100, 30, 0)");
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, 256, 256);
-  return new THREE.CanvasTexture(c);
-})();
+function useSunGlareTexture() {
+  return useMemo(() => {
+    if (typeof document === "undefined") return null;
+
+    const c = document.createElement("canvas");
+    c.width = c.height = 256;
+    const ctx = c.getContext("2d");
+    if (!ctx) return null;
+
+    const grad = ctx.createRadialGradient(128, 128, 0, 128, 128, 128);
+    grad.addColorStop(0, "rgba(255, 236, 200, 1)");
+    grad.addColorStop(0.15, "rgba(255, 180, 90, 0.7)");
+    grad.addColorStop(0.4, "rgba(255, 130, 40, 0.22)");
+    grad.addColorStop(0.7, "rgba(255, 100, 30, 0.07)");
+    grad.addColorStop(1, "rgba(255, 100, 30, 0)");
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 256, 256);
+
+    return new THREE.CanvasTexture(c);
+  }, []);
+}
 
 function Sun({ progress }: Scroll) {
   const ref = useRef<THREE.Group>(null);
+  const glareTexture = useSunGlareTexture();
+
+  useEffect(() => {
+    return () => {
+      glareTexture?.dispose();
+    };
+  }, [glareTexture]);
+
   useFrame(() => {
     if (!ref.current) return;
     // el sol está lejos: es la capa que menos se mueve — eso vende la profundidad
@@ -140,15 +161,17 @@ function Sun({ progress }: Scroll) {
   );
 }
 
-function Station({ progress }: Scroll) {
+function Station({ progress, reducedMotion }: Scroll & { reducedMotion: boolean }) {
   const ref = useRef<THREE.Group>(null);
   useFrame(({ clock }) => {
     if (!ref.current) return;
     const t = clock.elapsedTime;
     const p = progress.get();
-    ref.current.position.y = 2.4 + Math.sin(t * 0.4) * 0.12 - p * 2.2;
-    ref.current.position.x = -4.2 + Math.sin(t * 0.25) * 0.08 + p * 1.6;
-    ref.current.rotation.z = Math.sin(t * 0.3) * 0.05;
+    const driftY = reducedMotion ? 0 : Math.sin(t * 0.4) * 0.12;
+    const driftX = reducedMotion ? 0 : Math.sin(t * 0.25) * 0.08;
+    ref.current.position.y = 2.4 + driftY - p * 2.2;
+    ref.current.position.x = -4.2 + driftX + p * 1.6;
+    ref.current.rotation.z = reducedMotion ? 0 : Math.sin(t * 0.3) * 0.05;
   });
   return (
     <group ref={ref} position={[-4.2, 2.4, -6]} rotation={[0.3, 0.6, 0]} scale={0.7}>
@@ -172,15 +195,18 @@ function Station({ progress }: Scroll) {
   );
 }
 
-function SceneContents({ progress }: Scroll) {
+function SceneContents({ progress, reducedMotion }: Scroll & { reducedMotion: boolean }) {
   const group = useRef<THREE.Group>(null);
   useFrame(({ pointer }) => {
     if (!group.current) return;
     const p = progress.get();
     // mouse parallax + tilt leve de toda la escena acoplado al scroll
-    group.current.rotation.y = THREE.MathUtils.lerp(group.current.rotation.y, pointer.x * 0.03, 0.05);
-    group.current.rotation.x = THREE.MathUtils.lerp(group.current.rotation.x, -pointer.y * 0.02, 0.05);
-    group.current.rotation.z = THREE.MathUtils.lerp(group.current.rotation.z, p * -0.03, 0.08);
+    const targetY = reducedMotion ? 0 : pointer.x * 0.03;
+    const targetX = reducedMotion ? 0 : -pointer.y * 0.02;
+    const targetZ = reducedMotion ? 0 : p * -0.03;
+    group.current.rotation.y = THREE.MathUtils.lerp(group.current.rotation.y, targetY, 0.05);
+    group.current.rotation.x = THREE.MathUtils.lerp(group.current.rotation.x, targetX, 0.05);
+    group.current.rotation.z = THREE.MathUtils.lerp(group.current.rotation.z, targetZ, 0.08);
   });
   return (
     <group ref={group}>
@@ -189,22 +215,31 @@ function SceneContents({ progress }: Scroll) {
       <directionalLight position={[7, 3.4, -4]} intensity={2.1} color="#ffe6c2" />
       {/* relleno frío — mantiene el azul del agua en las zonas de sombra */}
       <directionalLight position={[-4, -2, 3]} intensity={0.5} color="#4a9eff" />
-      <Stars radius={80} depth={40} count={4200} factor={3.2} saturation={0.35} fade speed={0.4} />
-      <Stars radius={50} depth={20} count={1500} factor={2} saturation={0.2} fade speed={0.8} />
+      <Stars radius={80} depth={40} count={reducedMotion ? 2200 : 4200} factor={3.2} saturation={0.35} fade speed={reducedMotion ? 0 : 0.4} />
+      <Stars radius={50} depth={20} count={reducedMotion ? 800 : 1500} factor={2} saturation={0.2} fade speed={reducedMotion ? 0 : 0.8} />
       <Suspense fallback={null}>
         <Earth progress={progress} />
         <Moon progress={progress} />
       </Suspense>
       <Sun progress={progress} />
-      <Station progress={progress} />
+      <Station progress={progress} reducedMotion={reducedMotion} />
     </group>
   );
 }
 
 export default function SpaceScene() {
+  const [mounted, setMounted] = useState(false);
+  const [dpr, setDpr] = useState(1);
+  const shouldReduceMotion = useReducedMotion();
   const { scrollYProgress } = useScroll();
   // el spring es lo que da vida: los planetas siguen el scroll con inercia física
   const progress = useSpring(scrollYProgress, { stiffness: 55, damping: 18, mass: 0.7 });
+  const reducedMotion = shouldReduceMotion ?? false;
+
+  useEffect(() => {
+    setMounted(true);
+    setDpr(Math.min(window.devicePixelRatio || 1, 1.5));
+  }, []);
 
   return (
     <div className="fixed inset-0 -z-10" aria-hidden>
@@ -225,13 +260,15 @@ export default function SpaceScene() {
             "radial-gradient(45% 35% at 70% 20%, rgb(160 175 200 / 0.04), transparent 70%), radial-gradient(50% 40% at 20% 70%, rgb(150 150 170 / 0.03), transparent 70%)",
         }}
       />
-      <Canvas
-        camera={{ position: [0, 0, 5], fov: 60 }}
-        dpr={[1, 1.5]}
-        gl={{ antialias: false, powerPreference: "low-power" }}
-      >
-        <SceneContents progress={progress} />
-      </Canvas>
+      {mounted && !reducedMotion && (
+        <Canvas
+          camera={{ position: [0, 0, 5], fov: 60 }}
+          dpr={dpr}
+          gl={{ antialias: false, powerPreference: "low-power" }}
+        >
+          <SceneContents progress={progress} reducedMotion={reducedMotion} />
+        </Canvas>
+      )}
     </div>
   );
 }

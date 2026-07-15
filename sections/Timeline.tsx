@@ -1,14 +1,44 @@
-import { ScrollReveal } from "@/components/effects/ScrollReveal";
+﻿import { ScrollReveal } from "@/components/effects/ScrollReveal";
 import { SectionLabel } from "@/components/ui/SectionLabel";
-import { CheckCircle2, ClipboardCheck, FileUp, Search, Scale, Target, FileText } from "lucide-react";
+import { CheckCircle2, ClipboardCheck, FileText, FileUp, Search, Scale, Target } from "lucide-react";
 
 const STAGES = [
-  { icon: FileUp, time: "queued → extracting", title: "Crear expediente y cargar documentos", desc: "El usuario sube PDFs o imágenes; el sistema valida propiedad, formato, tamaño, hash y estado." },
-  { icon: ClipboardCheck, time: "awaiting_criteria", title: "Confirmar criterios y pesos", desc: "El Planner propone precio, garantía, plazo, cumplimiento y riesgos. El usuario puede ajustar pesos hasta sumar 1.0." },
-  { icon: Search, time: "researching", title: "Preparar evidencia recuperable", desc: "Parsing, OCR, chunking, embeddings y contexto vecino dejan cada dato enlazado a documento, página y fragmento." },
-  { icon: Scale, time: "comparing", title: "Comparar alternativas", desc: "Todos los proveedores se evalúan con los mismos criterios. Datos ausentes y contradicciones permanecen visibles." },
-  { icon: Target, time: "deciding", title: "Recomendar o abstenerse", desc: "El Decision Agent justifica una alternativa o devuelve needs_review cuando la evidencia no alcanza." },
-  { icon: FileText, time: "reporting → completed", title: "Entregar reporte auditable", desc: "La salida web y el PDF muestran recomendación, confianza, riesgos y citas verificables." },
+  {
+    icon: FileUp,
+    time: "queued → extracting",
+    title: "Crear expediente y cargar documentos",
+    desc: "El usuario sube PDFs o imágenes; el sistema valida propiedad, formato, tamaño, hash y estado.",
+  },
+  {
+    icon: ClipboardCheck,
+    time: "awaiting_criteria",
+    title: "Confirmar criterios y pesos",
+    desc: "El Planner propone precio, garantía, plazo, cumplimiento y riesgos. El usuario puede ajustar pesos hasta sumar 1.0.",
+  },
+  {
+    icon: Search,
+    time: "researching",
+    title: "Preparar evidencia recuperable",
+    desc: "Parsing, OCR, chunking, embeddings y contexto vecino dejan cada dato enlazado a documento, página y fragmento.",
+  },
+  {
+    icon: Scale,
+    time: "comparing",
+    title: "Comparar alternativas",
+    desc: "Todos los proveedores se evalúan con los mismos criterios. Datos ausentes y contradicciones permanecen visibles.",
+  },
+  {
+    icon: Target,
+    time: "deciding",
+    title: "Recomendar o abstenerse",
+    desc: "El Decision Agent justifica una alternativa o devuelve needs_review cuando la evidencia no alcanza.",
+  },
+  {
+    icon: FileText,
+    time: "reporting → completed",
+    title: "Entregar reporte auditable",
+    desc: "La salida web y el PDF muestran recomendación, confianza, riesgos y citas verificables.",
+  },
 ];
 
 export function Timeline() {

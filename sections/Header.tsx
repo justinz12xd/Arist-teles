@@ -1,18 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Scale } from "lucide-react";
+import { BrainCircuit } from "lucide-react";
 
 const LINKS = [
-  { href: "#about", label: "Misión" },
+  { href: "#about", label: "Sistema" },
   { href: "#timeline", label: "Flujo" },
-  { href: "#tracks", label: "Casos" },
-  { href: "#speakers", label: "Agentes" },
+  { href: "#tracks", label: "Agentes" },
+  { href: "#speakers", label: "Controles" },
   { href: "#faq", label: "FAQ" },
 ];
 
 export function Header() {
   const [scrolled, setScrolled] = useState(false);
+
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
     onScroll();
@@ -28,17 +29,17 @@ export function Header() {
     >
       <div className="mx-auto flex h-full max-w-6xl items-center justify-between px-6">
         <a href="#" className="flex items-center gap-2 font-medium text-white">
-          <Scale size={18} className="text-[var(--accent-cyan)]" />
-          ARISTÓTELES
+          <BrainCircuit size={18} className="text-[var(--accent-cyan)]" />
+          Aristoteles
         </a>
         <nav className="hidden gap-8 md:flex">
-          {LINKS.map((l) => (
+          {LINKS.map((link) => (
             <a
-              key={l.href}
-              href={l.href}
+              key={link.href}
+              href={link.href}
               className="text-sm text-[var(--primary-44)] transition-colors hover:text-white"
             >
-              {l.label}
+              {link.label}
             </a>
           ))}
         </nav>

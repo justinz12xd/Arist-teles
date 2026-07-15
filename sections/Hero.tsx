@@ -5,12 +5,19 @@ import { FileSearch, PlayCircle, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { EASE_OUT_QUINT } from "@/lib/motion";
 
-const TAGLINE_WORDS = ["Compará", "proveedores", "con", "criterios", "claros", "y", "evidencia", "verificable."];
+const TAGLINE_WORDS = ["Compara", "proveedores", "con", "criterios", "claros", "y", "evidencia", "verificable."];
+
 const STATUS = [
   { label: "documentos", value: "03" },
   { label: "criterios", value: "05" },
   { label: "citas", value: "18" },
   { label: "confianza", value: "0.84" },
+];
+
+const SCORES = [
+  ["Precio", "92%", "cotizacion-b.pdf · pag. 2"],
+  ["Entrega", "88%", "propuesta-b.pdf · pag. 4"],
+  ["Garantia", "81%", "garantia-b.pdf · pag. 1"],
 ];
 
 export function Hero() {
@@ -31,15 +38,15 @@ export function Hero() {
           animate={{ opacity: 1 }}
           transition={{ delay: 0.15, duration: 0.6 }}
         >
-          sistema multiagente · recomendación no vinculante · traza auditable
+          sistema multiagente · recomendacion no vinculante · traza auditable
         </motion.p>
         <motion.h1
-          className="mx-auto mt-4 max-w-5xl text-[clamp(3.2rem,9vw,8.5rem)] font-medium leading-[0.9] tracking-[-0.07em] text-white"
+          className="mx-auto mt-4 max-w-5xl text-[clamp(3.2rem,9vw,6rem)] font-medium leading-[0.95] tracking-[-0.04em] text-white"
           initial={{ opacity: 0, y: 10, filter: "blur(6px)" }}
           animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
           transition={{ delay: 0.25, duration: 1, ease: EASE_OUT_QUINT }}
         >
-          Aristóteles
+          Aristoteles
         </motion.h1>
         <motion.p
           className="mx-auto mt-6 max-w-2xl text-lg text-[var(--primary-60)]"
@@ -47,8 +54,8 @@ export function Hero() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.7, duration: 0.8, ease: EASE_OUT_QUINT }}
         >
-          Transformá cotizaciones, contratos y garantías en una comparación estructurada,
-          una recomendación explicable y un reporte con fuentes página por página.
+          Convierte cotizaciones, contratos y garantias en una comparacion estructurada,
+          una recomendacion explicable y un reporte con fuentes pagina por pagina.
         </motion.p>
       </div>
 
@@ -83,21 +90,17 @@ export function Hero() {
             <div className="glass p-5">
               <div className="flex items-center gap-3 text-white">
                 <ShieldCheck size={18} className="text-[var(--accent-cyan)]" />
-                <p className="font-medium">Recomendación preliminar</p>
+                <p className="font-medium">Recomendacion preliminar</p>
               </div>
               <p className="mt-5 text-4xl font-medium tracking-[-0.04em] text-white md:text-6xl">
                 Proveedor B
               </p>
               <p className="mt-4 text-sm leading-6 text-[var(--primary-60)]">
-                Mejor equilibrio entre precio, plazo y garantía. La confianza es alta porque
-                los cinco criterios tienen cobertura y las afirmaciones críticas están citadas.
+                Mejor equilibrio entre precio, plazo y garantia. La confianza es alta porque
+                los cinco criterios tienen cobertura y las afirmaciones criticas estan citadas.
               </p>
               <div className="mt-6 space-y-3 text-xs">
-                {[
-                  ["Precio", "92%", "cotizacion-b.pdf · pág. 2"],
-                  ["Entrega", "88%", "propuesta-b.pdf · pág. 4"],
-                  ["Garantía", "81%", "garantia-b.pdf · pág. 1"],
-                ].map(([criterion, score, source]) => (
+                {SCORES.map(([criterion, score, source]) => (
                   <div key={criterion} className="grid grid-cols-[5rem_1fr] items-center gap-3">
                     <span className="text-white">{criterion}</span>
                     <div>

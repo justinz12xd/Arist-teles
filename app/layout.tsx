@@ -14,9 +14,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Aristóteles — decisiones respaldadas por evidencia",
+  title: "Aristoteles | Decisiones respaldadas por evidencia",
   description:
-    "Sistema multiagente para comparar proveedores, detectar riesgos y generar recomendaciones auditables con evidencia documental.",
+    "Sistema multiagente para comparar proveedores, contratos y propuestas con criterios confirmados, citas verificables y confianza explicable.",
 };
 
 export default function RootLayout({

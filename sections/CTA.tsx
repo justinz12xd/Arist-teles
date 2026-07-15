@@ -7,8 +7,8 @@ import { viewportOnce } from "@/lib/motion";
 const TERMINAL_LINES = [
   "> aristoteles.run · expediente proveedor-q4",
   "> criterios confirmados: precio=.30 garantia=.20 entrega=.20 cumplimiento=.20 riesgos=.10",
-  "> contradicción crítica: no encontrada",
-  "> decisión: recommend(Proveedor B) · confidence=high · score=0.84",
+  "> contradiccion critica: no encontrada",
+  "> decision: recommend(Proveedor B) · confidence=high · score=0.84",
 ];
 
 export function CTA() {
@@ -24,11 +24,11 @@ export function CTA() {
 
       <div className="relative mx-auto max-w-3xl text-center">
         <ScrollReveal>
-          <h2 className="text-h1">Subí tres propuestas. Defendé una decisión.</h2>
+          <h2 className="text-h1">Sube tres propuestas. Defiende una decision.</h2>
           <p className="mx-auto mt-6 max-w-xl text-lg text-[var(--primary-60)]">
-            El MVP se enfoca en comparación de proveedores: documentos privados,
+            El MVP se enfoca en comparacion de proveedores: documentos privados,
             criterios editables, progreso visible y reporte descargable con la misma
-            decisión estructurada que viste en pantalla.
+            decision estructurada que viste en pantalla.
           </p>
         </ScrollReveal>
 

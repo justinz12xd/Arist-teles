@@ -1,18 +1,21 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import type { ReactNode } from "react";
-import { fadeRise, viewportOnce } from "@/lib/motion";
+import { fadeRise, fadeRiseReduced, viewportOnce } from "@/lib/motion";
 
 export function ScrollReveal({ children, className, delay = 0 }: { children: ReactNode; className?: string; delay?: number }) {
+  const shouldReduceMotion = useReducedMotion();
+  const variants = shouldReduceMotion ? fadeRiseReduced : fadeRise;
+
   return (
     <motion.div
       className={className}
-      variants={fadeRise}
+      variants={variants}
       initial="hidden"
       whileInView="visible"
       viewport={viewportOnce}
-      transition={{ delay }}
+      transition={shouldReduceMotion ? { duration: 0 } : { delay: Math.max(0, delay) }}
     >
       {children}
     </motion.div>
