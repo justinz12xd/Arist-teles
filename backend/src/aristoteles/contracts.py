@@ -1,7 +1,7 @@
 from enum import StrEnum
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class AgentName(StrEnum):
@@ -79,6 +79,12 @@ class EvidenceRef(BaseModel):
     source_hash: str
 
 
+class ResearchResult(BaseModel):
+    evidence: list[EvidenceRef] = Field(default_factory=list)
+    facts: list[dict[str, Any]] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)
+
+
 class ComparisonCriterion(BaseModel):
     key: str
     value: str | None = None
@@ -93,6 +99,15 @@ class ProviderComparison(BaseModel):
     advantages: list[str] = Field(default_factory=list)
     disadvantages: list[str] = Field(default_factory=list)
     contradictions: list[str] = Field(default_factory=list)
+    weighted_score: float = Field(default=0, ge=0, le=1)
+
+    @field_validator("provider_id")
+    @classmethod
+    def provider_id_must_not_be_blank(cls, value: str) -> str:
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("provider_id must not be blank")
+        return normalized
 
 
 class ConfidenceBreakdown(BaseModel):
@@ -112,12 +127,13 @@ class DecisionResult(BaseModel):
     confidence: ConfidenceBreakdown
     evidence_ids: list[str] = Field(default_factory=list)
 
-    @field_validator("recommended_provider_id")
-    @classmethod
-    def recommendation_requires_provider(cls, value: str | None, info: Any) -> str | None:
-        if info.data.get("outcome") == "recommendation" and not value:
+    @model_validator(mode="after")
+    def recommendation_requires_provider(self) -> "DecisionResult":
+        if self.outcome == "recommendation" and not self.recommended_provider_id:
             raise ValueError("A recommendation requires a provider")
-        return value
+        if self.outcome == "needs_review" and self.recommended_provider_id is not None:
+            raise ValueError("A needs_review decision must not include a provider")
+        return self
 
 
 class RoadmapCheckpoint(BaseModel):
@@ -168,7 +184,9 @@ class DocumentRegister(BaseModel):
     byte_size: int = Field(gt=0)
     sha256: str = Field(pattern=r"^[a-fA-F0-9]{64}$")
     storage_key: str = Field(min_length=3, max_length=1024)
-    storage_url: str = Field(min_length=1)
+    # Accepted only for backward compatibility. The backend never trusts this URL and
+    # derives the canonical Storage URL from `storage_key`.
+    storage_url: str | None = None
 
 
 class CriteriaConfirmation(BaseModel):

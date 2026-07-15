@@ -1,12 +1,14 @@
 import base64
+import hashlib
 import hmac
 import json
 from datetime import UTC, datetime
-from typing import Annotated
+from io import BytesIO
+from typing import Annotated, Any
+from urllib.parse import urlsplit
 
 from fastapi import (
     APIRouter,
-    BackgroundTasks,
     Depends,
     FastAPI,
     File,
@@ -18,6 +20,7 @@ from fastapi import (
     status,
 )
 from fastapi.middleware.cors import CORSMiddleware
+from PIL import Image, UnidentifiedImageError
 
 from .agents import AgentRuntime
 from .config import Settings, get_settings
@@ -30,6 +33,79 @@ from .web_research import WebResearchService
 
 router = APIRouter(tags=["analysis"])
 SettingsContext = Annotated[Settings, Depends(get_settings)]
+
+
+def parse_cors_origins(value: str | list[str]) -> list[str]:
+    raw_origins: list[str]
+    if isinstance(value, list):
+        raw_origins = [str(item) for item in value]
+    else:
+        stripped = value.strip()
+        if stripped.startswith("["):
+            try:
+                decoded = json.loads(stripped)
+            except json.JSONDecodeError as exc:
+                raise ValueError(
+                    "CORS origins must be a comma-separated string or JSON list"
+                ) from exc
+            if not isinstance(decoded, list):
+                raise ValueError("CORS origins JSON value must be a list")
+            raw_origins = [str(item) for item in decoded]
+        else:
+            raw_origins = value.split(",")
+
+    origins: list[str] = []
+    for raw in raw_origins:
+        origin = raw.strip().rstrip("/")
+        if not origin:
+            continue
+        if origin == "*":
+            raise ValueError("Wildcard CORS origins are not allowed")
+        parsed = urlsplit(origin)
+        if parsed.scheme not in {"http", "https"} or not parsed.netloc or parsed.path:
+            raise ValueError(f"Invalid CORS origin: {origin}")
+        origins.append(origin)
+    return list(dict.fromkeys(origins))
+
+
+class ConfiguredCORSMiddleware(CORSMiddleware):
+    """Resolve CORS through Pydantic Settings, including configured env files."""
+
+    def __init__(self, app, settings: Settings | None = None):
+        resolved = settings or get_settings()
+        super().__init__(
+            app,
+            allow_origins=parse_cors_origins(resolved.cors_origins),
+            allow_credentials=True,
+            allow_methods=["GET", "POST", "PUT", "OPTIONS"],
+            allow_headers=["Authorization", "Content-Type"],
+        )
+
+
+def _detected_mime(raw: bytes) -> str | None:
+    if raw.startswith(b"%PDF-"):
+        return "application/pdf"
+    try:
+        with Image.open(BytesIO(raw)) as image:
+            return {
+                "PNG": "image/png",
+                "JPEG": "image/jpeg",
+                "WEBP": "image/webp",
+            }.get(image.format or "")
+    except (UnidentifiedImageError, OSError):
+        return None
+
+
+def validate_document_bytes(document: dict[str, Any], raw: bytes, *, max_bytes: int) -> None:
+    if len(raw) > max_bytes:
+        raise ValueError("Document exceeds the configured maximum size")
+    if len(raw) != int(document["byte_size"]):
+        raise ValueError("Document byte size does not match registration")
+    if hashlib.sha256(raw).hexdigest().casefold() != str(document["sha256"]).casefold():
+        raise ValueError("Document hash does not match registration")
+    detected = _detected_mime(raw)
+    if detected is None or detected != document["mime_type"]:
+        raise ValueError("Document MIME does not match its content")
 
 
 def _user_id(token: str) -> str:
@@ -95,7 +171,9 @@ async def research_chat(
         try:
             pages = extract_pdf(await upload.read())
         except Exception as exc:  # pragma: no cover - parser exceptions vary by file.
-            raise HTTPException(status_code=400, detail=f"{upload.filename} could not be processed") from exc
+            raise HTTPException(
+                status_code=400, detail=f"{upload.filename} could not be processed"
+            ) from exc
         text = "\n".join(page.text for page in pages if page.text.strip())
         if text:
             documents.append(f"Documento: {upload.filename or 'documento.pdf'}\n{text}")
@@ -145,15 +223,24 @@ async def register_document(case_id: str, payload: DocumentRegister, context: Au
         )
         if case is None:
             raise HTTPException(status_code=404, detail="Case not found")
+        values = payload.model_dump(exclude={"storage_url"})
+        values["storage_url"] = repository.storage_object_url(
+            bucket="case-documents", key=payload.storage_key
+        )
         return await repository.insert(
-            "documents", {"owner_id": owner_id, "case_id": case_id, **payload.model_dump()}
+            "documents", {"owner_id": owner_id, "case_id": case_id, **values}
         )
     except InsForgeError as exc:
         raise _insforge_error(exc) from exc
 
 
 @router.post("/v1/cases/{case_id}/documents/{document_id}/extract")
-async def extract_document(case_id: str, document_id: str, context: AuthContext) -> dict:
+async def extract_document(
+    case_id: str,
+    document_id: str,
+    context: AuthContext,
+    settings: SettingsContext,
+) -> dict:
     owner_id, repository = context
     document = await repository.select_one(
         "documents",
@@ -161,10 +248,24 @@ async def extract_document(case_id: str, document_id: str, context: AuthContext)
     )
     if document is None:
         raise HTTPException(status_code=404, detail="Document not found")
+    storage_key = str(document.get("storage_key", ""))
+    if not storage_key.startswith(f"{owner_id}/{case_id}/"):
+        raise HTTPException(status_code=400, detail="Storage key is outside the case owner prefix")
+    try:
+        raw = await repository.download_storage_object(
+            bucket="case-documents", key=storage_key, max_bytes=settings.max_document_bytes
+        )
+        validate_document_bytes(document, raw, max_bytes=settings.max_document_bytes)
+    except (ValueError, InsForgeError) as exc:
+        await repository.update(
+            "documents",
+            {"id": f"eq.{document_id}", "owner_id": f"eq.{owner_id}"},
+            {"extraction_status": "needs_review"},
+        )
+        raise HTTPException(status_code=400, detail="Document integrity validation failed") from exc
     await repository.delete(
         "document_pages", {"document_id": f"eq.{document_id}", "owner_id": f"eq.{owner_id}"}
     )
-    raw = await repository.download_url(document["storage_url"])
     pages = extract_pdf(raw) if document["mime_type"] == "application/pdf" else extract_image(raw)
     for page in pages:
         await repository.insert(
@@ -193,9 +294,7 @@ async def extract_document(case_id: str, document_id: str, context: AuthContext)
 
 
 @router.post("/v1/cases/{case_id}/plans", status_code=status.HTTP_201_CREATED)
-async def create_plan(
-    case_id: str, context: AuthContext, settings: SettingsContext
-) -> dict:
+async def create_plan(case_id: str, context: AuthContext, settings: SettingsContext) -> dict:
     owner_id, repository = context
     case = await repository.select_one(
         "cases", {"id": f"eq.{case_id}", "owner_id": f"eq.{owner_id}"}
@@ -253,13 +352,8 @@ async def confirm_criteria(
     return updated or run
 
 
-@router.post("/v1/plans/{run_id}/runs", status_code=status.HTTP_202_ACCEPTED)
-async def start_run(
-    run_id: str,
-    background: BackgroundTasks,
-    context: AuthContext,
-    settings: SettingsContext,
-) -> dict:
+@router.post("/v1/plans/{run_id}/runs")
+async def start_run(run_id: str, context: AuthContext, settings: SettingsContext) -> dict:
     owner_id, repository = context
     run = await repository.select_one(
         "analysis_runs", {"id": f"eq.{run_id}", "owner_id": f"eq.{owner_id}"}
@@ -268,22 +362,37 @@ async def start_run(
         raise HTTPException(status_code=404, detail="Run not found")
     if run["status"] not in (RunStatus.queued, RunStatus.failed):
         raise HTTPException(status_code=409, detail=f"Run cannot start from {run['status']}")
-    await repository.update(
+    claimed = await repository.update(
         "analysis_runs",
-        {"id": f"eq.{run_id}", "owner_id": f"eq.{owner_id}"},
+        {
+            "id": f"eq.{run_id}",
+            "owner_id": f"eq.{owner_id}",
+            "status": "in.(queued,failed)",
+        },
         {"status": RunStatus.extracting, "started_at": datetime.now(UTC).isoformat()},
     )
-    background.add_task(execute_run, run_id, owner_id, repository.access_token, settings)
-    return {"run_id": run_id, "status": RunStatus.extracting}
+    if claimed is None:
+        raise HTTPException(status_code=409, detail="Run was already claimed")
+    decision = await execute_run(run_id, owner_id, repository, settings)
+    completed = await repository.select_one(
+        "analysis_runs", {"id": f"eq.{run_id}", "owner_id": f"eq.{owner_id}"}
+    )
+    return {
+        "run_id": run_id,
+        "status": completed["status"] if completed else RunStatus.failed,
+        "decision": decision.model_dump(mode="json") if decision else None,
+    }
 
 
 async def execute_run(
-    run_id: str, owner_id: str, access_token: str | None, settings: Settings
-) -> None:
-    """Execute agent stages with the same user scope as the triggering request."""
-    repository = InsForgeRepository(settings, access_token=access_token)
+    run_id: str,
+    owner_id: str,
+    repository: InsForgeRepository,
+    settings: Settings,
+):
+    """Execute agent stages synchronously with the triggering user's scope."""
     try:
-        await AnalysisPipeline(settings, repository).execute(run_id, owner_id)
+        return await AnalysisPipeline(settings, repository).execute(run_id, owner_id)
     except (InsForgeError, ValueError, RuntimeError) as exc:
         await repository.update(
             "analysis_runs",
@@ -294,6 +403,7 @@ async def execute_run(
                 "error_message": "Analysis failed; inspect the run logs for details.",
             },
         )
+        return None
 
 
 @router.get("/v1/runs/{run_id}")
@@ -339,13 +449,7 @@ async def get_report_pdf(run_id: str, context: AuthContext) -> Response:
 def create_legacy_app() -> FastAPI:
     """Compatibility factory; production uses ``aristoteles_api.main``."""
     application = FastAPI(title="Aristóteles API", version="0.1.0")
-    application.add_middleware(
-        CORSMiddleware,
-        allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
+    application.add_middleware(ConfiguredCORSMiddleware)
     application.include_router(router)
     return application
 
