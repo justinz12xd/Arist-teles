@@ -25,6 +25,14 @@ class Settings(BaseSettings):
     )
     insforge_anon_key: SecretStr | None = None
     insforge_api_key: SecretStr | None = None
+    supabase_url: AnyHttpUrl | None = Field(
+        default=None,
+        validation_alias=AliasChoices("SUPABASE_URL", "NEXT_PUBLIC_INSFORGE_URL"),
+    )
+    supabase_publishable_key: SecretStr | None = Field(
+        default=None,
+        validation_alias=AliasChoices("SUPABASE_PUBLISHABLE_KEY", "NEXT_PUBLIC_INSFORGE_ANON_KEY"),
+    )
     aristoteles_api_shared_secret: SecretStr | None = None
     rag_chunk_tokens: int = Field(default=700, gt=0)
     rag_chunk_overlap_tokens: int = Field(default=100, ge=0)
@@ -37,6 +45,12 @@ class Settings(BaseSettings):
     rag_max_question_chars: int = Field(default=4_000, ge=1)
     provider_timeout_seconds: float = Field(default=30, gt=0)
     provider_max_retries: int = Field(default=2, ge=0)
+
+    @property
+    def supabase_rest_url(self) -> str:
+        if self.supabase_url is None:
+            raise RuntimeError("SUPABASE_URL is required for Supabase database operations")
+        return f"{str(self.supabase_url).rstrip('/')}/rest/v1"
 
     @property
     def rest_url(self) -> str:

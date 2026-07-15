@@ -33,3 +33,14 @@ def test_default_top_k_cannot_exceed_configured_maximum() -> None:
 def test_embedding_dimensions_match_the_vector_schema() -> None:
     with pytest.raises(ValidationError):
         Settings(_env_file=None, openai_embedding_dimensions=3072)
+
+
+def test_settings_accept_supabase_url() -> None:
+    settings = Settings(
+        _env_file=None,
+        SUPABASE_URL="https://example.supabase.co",
+        SUPABASE_PUBLISHABLE_KEY="sb_publishable_example",
+    )
+
+    assert settings.supabase_rest_url == "https://example.supabase.co/rest/v1"
+    assert settings.supabase_publishable_key is not None
