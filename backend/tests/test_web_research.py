@@ -103,6 +103,28 @@ async def test_auto_mode_becomes_hybrid_when_documents_are_present() -> None:
 
 
 @pytest.mark.asyncio
+async def test_conversation_context_is_added_to_prompt() -> None:
+    client = _FakeClient()
+    service = WebResearchService(Settings(_env_file=None), client=client)  # type: ignore[arg-type]
+
+    await service.answer(
+        objective="¿Qué hago con esto?",
+        mode=ResearchMode.web,
+        conversation_context=(
+            "Usuario: Estamos evaluando la ruta "
+            "'Recopilación mínima y roadmap provisional'."
+        ),
+    )
+
+    assert client.responses.request is not None
+    assert "Contexto conversacional previo" in client.responses.request["input"][1]["content"]
+    assert (
+        "Recopilación mínima y roadmap provisional"
+        in client.responses.request["input"][1]["content"]
+    )
+
+
+@pytest.mark.asyncio
 async def test_roadmap_request_returns_visual_decision_paths() -> None:
     client = _FakeClient()
     service = WebResearchService(Settings(_env_file=None), client=client)  # type: ignore[arg-type]
@@ -119,3 +141,18 @@ async def test_roadmap_request_returns_visual_decision_paths() -> None:
     assert sum(item.weight for item in response.roadmap.criteria) == 1
     assert client.responses.parse_request is not None
     assert client.responses.parse_request["model"] == "gpt-5.6-luna"
+
+
+@pytest.mark.asyncio
+async def test_include_roadmap_false_skips_visual_roadmap_even_if_requested() -> None:
+    client = _FakeClient()
+    service = WebResearchService(Settings(_env_file=None), client=client)  # type: ignore[arg-type]
+
+    response = await service.answer(
+        objective="Crea un roadmap con el mejor camino para lanzar el producto",
+        mode=ResearchMode.web,
+        include_roadmap=False,
+    )
+
+    assert response.roadmap is None
+    assert client.responses.parse_request is None

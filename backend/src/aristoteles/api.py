@@ -176,6 +176,8 @@ async def research_chat(
     objective: Annotated[str, Form(min_length=1, max_length=4_000)],
     settings: SettingsContext,
     mode: Annotated[ResearchMode, Form()] = ResearchMode.auto,
+    conversation_context: Annotated[str | None, Form(min_length=1, max_length=12_000)] = None,
+    include_roadmap: Annotated[bool | None, Form()] = None,
     files: Annotated[list[UploadFile] | None, File()] = None,
     x_aristoteles_proxy: Annotated[str | None, Header()] = None,
 ) -> dict:
@@ -201,6 +203,8 @@ async def research_chat(
         result = await WebResearchService(settings).answer(
             objective=objective,
             mode=mode,
+            conversation_context=conversation_context or "",
+            include_roadmap=include_roadmap,
             documents=documents,
         )
     except RuntimeError as exc:

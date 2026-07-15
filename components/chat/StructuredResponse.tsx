@@ -50,7 +50,7 @@ export function StructuredResponse({ content, result }: { content: string; resul
     { id: "evidence", label: `Fuentes (${result.citations?.length ?? 0})`, icon: Search },
     { id: "process", label: "Proceso", icon: CheckCircle2 },
   ];
-  const [activeTab, setActiveTab] = useState(result.roadmap ? "roadmap" : tabs[0].id);
+  const [activeTab, setActiveTab] = useState(tabs[0].id);
   const pageSize = 4;
   const activeIndex = Math.max(0, tabs.findIndex((tab) => tab.id === activeTab));
   const activePage = Math.floor(activeIndex / pageSize);

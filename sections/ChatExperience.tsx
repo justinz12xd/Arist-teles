@@ -48,6 +48,8 @@ type HistoryItem = {
   local: boolean;
 };
 
+const MAX_CONVERSATION_CONTEXT_CHARS = 12_000;
+
 const CHAT_HISTORY = [
   { id: "preset-renovacion-equipos", title: "Renovacion de equipos", preview: "Proveedor B lidera; 2 riesgos pendientes.", active: true },
   { id: "preset-contrato-soporte", title: "Contrato de soporte", preview: "Clausula de penalidad requiere revision.", active: false },
@@ -230,6 +232,46 @@ function fallbackAnswer(question: string, files: File[]): AgentResult {
     answer: `No pude recuperar evidencia verificable para: "${question}".`,
     citations: [],
   };
+}
+
+function summarizeRoadmap(result?: AgentResult): string {
+  if (!result?.roadmap) {
+    return "";
+  }
+
+  const lines = [
+    `Mapa de decisión: ${result.roadmap.objective}`,
+    ...result.roadmap.paths.map((path) => {
+      const score = Math.round(path.score * 100);
+      const firstCheckpoint = path.checkpoints.find((checkpoint) => checkpoint.value)?.value;
+      return `- ${path.label} (${score} puntos): ${firstCheckpoint ?? path.next_action}`;
+    }),
+    `Resolución propuesta: ${result.roadmap.resolution}`,
+  ];
+
+  return lines.join("\n");
+}
+
+function buildConversationContext(messages: ChatMessage[]): string {
+  const relevantMessages = messages.slice(-6);
+  if (!relevantMessages.length) {
+    return "";
+  }
+
+  const serialized = relevantMessages
+    .map((message) => {
+      const speaker = message.role === "user" ? "Usuario" : "Asistente";
+      const roadmapSummary = summarizeRoadmap(message.result);
+      return [ `${speaker}: ${message.content}`, roadmapSummary ].filter(Boolean).join("\n");
+    })
+    .join("\n\n")
+    .trim();
+
+  if (serialized.length <= MAX_CONVERSATION_CONTEXT_CHARS) {
+    return serialized;
+  }
+
+  return serialized.slice(-MAX_CONVERSATION_CONTEXT_CHARS);
 }
 
 export function ChatExperience() {
@@ -545,6 +587,7 @@ export function ChatExperience() {
 
     const cleanQuestion = question.trim();
     const attachedFiles = files;
+    const conversationContext = buildConversationContext(messages);
     appendUserMessage(cleanQuestion, attachedFiles);
     setQuestion("");
     setFiles([]);
@@ -554,6 +597,9 @@ export function ChatExperience() {
     const formData = new FormData();
     formData.set("objective", cleanQuestion);
     formData.set("mode", attachedFiles.length ? "hybrid" : "web");
+    if (conversationContext) {
+      formData.set("conversation_context", conversationContext);
+    }
     for (const file of attachedFiles) {
       formData.append("files", file);
     }
