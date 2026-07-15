@@ -18,8 +18,6 @@
       "root": "backend/",
       "entrypoint": "Dockerfile.vercel",
       "runtime": "container",
-      "memory": 2048,
-      "maxDuration": 300,
       "routes": [
         {
           "src": "/svc/api",
