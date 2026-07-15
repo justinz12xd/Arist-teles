@@ -1,0 +1,157 @@
+name: Deploy production to Azure
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: azure-production-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  AZURE_CLIENT_ID: 97419016-2d9e-428c-8d62-2fd34df703cf
+  AZURE_TENANT_ID: 339c8a25-ffa4-4066-a1ae-58497c08c18a
+  AZURE_SUBSCRIPTION_ID: cf7c4441-9184-48fe-9d0f-9938d60fd91a
+  AZURE_RESOURCE_GROUP: rg-aristoteles-prod-eus
+  AZURE_CORE_OUTPUT: none
+  ACR_NAME: acraristp4f32d17
+  ACR_LOGIN_SERVER: acraristp4f32d17.azurecr.io
+  CONTAINER_APP_NAME: ca-aristoteles-api-prod
+  WEBAPP_NAME: aristoteles-4f32d17
+  BACKEND_URL: https://ca-aristoteles-api-prod.greenground-b0858b02.eastus.azurecontainerapps.io
+  FRONTEND_URL: https://aristoteles-4f32d17.azurewebsites.net
+
+jobs:
+  deploy:
+    name: Deploy backend and frontend
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Sign in to Azure with OIDC
+        uses: azure/login@532459ea530d8321f2fb9bb10d1e0bcf23869a43 # v3.0.0
+        with:
+          client-id: ${{ env.AZURE_CLIENT_ID }}
+          tenant-id: ${{ env.AZURE_TENANT_ID }}
+          subscription-id: ${{ env.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Build backend image in ACR
+        run: |
+          az acr build \
+            --resource-group "$AZURE_RESOURCE_GROUP" \
+            --registry "$ACR_NAME" \
+            --file Dockerfile \
+            --image "aristoteles-api:${GITHUB_SHA}" \
+            backend
+
+      - name: Update backend Container App
+        run: |
+          az extension add --name containerapp --upgrade --yes
+          az containerapp update \
+            --resource-group "$AZURE_RESOURCE_GROUP" \
+            --name "$CONTAINER_APP_NAME" \
+            --image "${ACR_LOGIN_SERVER}/aristoteles-api:${GITHUB_SHA}"
+
+      - name: Verify backend deployment state
+        run: |
+          expected_image="${ACR_LOGIN_SERVER}/aristoteles-api:${GITHUB_SHA}"
+          configured_image="$(az containerapp show \
+            --resource-group "$AZURE_RESOURCE_GROUP" \
+            --name "$CONTAINER_APP_NAME" \
+            --query 'properties.template.containers[0].image' \
+            --output tsv)"
+          latest_ready_revision="$(az containerapp show \
+            --resource-group "$AZURE_RESOURCE_GROUP" \
+            --name "$CONTAINER_APP_NAME" \
+            --query 'properties.latestReadyRevisionName' \
+            --output tsv)"
+
+          if [[ "$configured_image" != "$expected_image" ]]; then
+            echo "Container App is not configured with the expected commit image" >&2
+            exit 1
+          fi
+
+          if [[ -z "$latest_ready_revision" ]]; then
+            echo "Container App has no latest ready revision" >&2
+            exit 1
+          fi
+
+      - name: Smoke test backend
+        run: |
+          curl \
+            --fail \
+            --silent \
+            --show-error \
+            --retry 18 \
+            --retry-all-errors \
+            --retry-delay 10 \
+            --max-time 20 \
+            "${BACKEND_URL}/health" >/dev/null
+
+      - name: Package frontend source
+        id: frontend-package
+        run: |
+          package="${RUNNER_TEMP}/aristoteles-frontend-${GITHUB_SHA}.zip"
+          staging="${RUNNER_TEMP}/aristoteles-frontend"
+          mkdir -p "$staging"
+
+          git archive HEAD \
+            package.json \
+            package-lock.json \
+            next.config.ts \
+            postcss.config.mjs \
+            tsconfig.json \
+            app \
+            components \
+            lib \
+            public \
+            sections \
+            | tar -x -C "$staging"
+
+          (cd "$staging" && zip -q -r "$package" .)
+
+          if zipinfo -1 "$package" | grep -Eq '(^|/)(\.env[^/]*|backend|\.git|node_modules|\.next|[^/]*cache[^/]*)(/|$)'; then
+            echo "Forbidden file found in frontend package" >&2
+            exit 1
+          fi
+
+          echo "path=$package" >>"$GITHUB_OUTPUT"
+
+      - name: Deploy frontend with OneDeploy
+        timeout-minutes: 35
+        run: |
+          az webapp deploy \
+            --resource-group "$AZURE_RESOURCE_GROUP" \
+            --name "$WEBAPP_NAME" \
+            --src-path "${{ steps.frontend-package.outputs.path }}" \
+            --type zip \
+            --async false \
+            --clean true \
+            --restart true \
+            --track-status true \
+            --timeout 1800000
+
+      - name: Smoke test frontend
+        run: |
+          curl \
+            --fail \
+            --silent \
+            --show-error \
+            --retry 18 \
+            --retry-all-errors \
+            --retry-delay 10 \
+            --max-time 20 \
+            "$FRONTEND_URL" >/dev/null
