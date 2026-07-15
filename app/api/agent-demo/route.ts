@@ -1,7 +1,10 @@
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
-  const apiUrl = process.env.ARISTOTELES_API_URL ?? process.env.NEXT_PUBLIC_ARISTOTELES_API_URL;
+  const apiUrl =
+    process.env.ARISTOTELES_API_URL ??
+    process.env.BACKEND_URL ??
+    process.env.NEXT_PUBLIC_ARISTOTELES_API_URL;
 
   if (!apiUrl) {
     return Response.json(

@@ -8,7 +8,9 @@ from typing import Any
 
 from fastapi import File, Form, HTTPException, UploadFile
 
+from .contracts import DecisionResult, ProviderComparison
 from .extraction import ExtractedPage, extract_pdf
+from .roadmap import build_decision_roadmap
 
 
 CRITERIA = [
@@ -415,6 +417,23 @@ def build_demo_agent_result(
             "confidence": confidence,
         },
     }
+    decision = {
+        "outcome": outcome,
+        "recommended_provider_id": recommended,
+        "summary": decision_summary,
+        "risk_items": [
+            *best_option["disadvantages"][:2],
+            "Validar montos, plazos y garantias contra el documento original.",
+        ],
+        "confidence": confidence,
+        "evidence_ids": [item["id"] for item in evidence],
+    }
+    roadmap = build_decision_roadmap(
+        objective=objective,
+        criteria=CRITERIA,
+        comparisons=[ProviderComparison.model_validate(item) for item in comparison],
+        decision=DecisionResult.model_validate(decision),
+    )
 
     return {
         "analysis_mode": "deterministic_multiagent_demo",
@@ -450,17 +469,8 @@ def build_demo_agent_result(
         },
         "agent_outputs": agent_outputs,
         "comparison": comparison,
-        "decision": {
-            "outcome": outcome,
-            "recommended_provider_id": recommended,
-            "summary": decision_summary,
-            "risk_items": [
-                *best_option["disadvantages"][:2],
-                "Validar montos, plazos y garantias contra el documento original.",
-            ],
-            "confidence": confidence,
-            "evidence_ids": [item["id"] for item in evidence],
-        },
+        "decision": decision,
+        "roadmap": roadmap.model_dump(mode="json"),
         "raw_pages": [
             {"document": item["filename"], **asdict(item["page"])}
             for item in all_pages

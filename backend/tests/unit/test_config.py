@@ -10,6 +10,14 @@ def test_settings_allow_health_without_provider_credentials() -> None:
     assert settings.openai_api_key is None
     assert settings.insforge_base_url is None
     assert settings.rag_default_top_k == 5
+    assert settings.model_for_agent("planner") == "gpt-5.6-luna"
+    assert settings.model_for_agent("decision") == "gpt-5.6-terra"
+
+
+def test_settings_accept_legacy_insforge_url_without_a_second_config() -> None:
+    settings = Settings(_env_file=None, INSFORGE_URL="https://example.insforge.app")
+
+    assert settings.rest_url == "https://example.insforge.app/rest/v1"
 
 
 def test_overlap_must_be_smaller_than_chunk_size() -> None:

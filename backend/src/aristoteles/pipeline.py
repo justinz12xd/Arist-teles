@@ -7,6 +7,7 @@ from .config import Settings
 from .contracts import DecisionResult, RunStatus
 from .insforge import InsForgeRepository
 from .rag import RAGService
+from .roadmap import build_decision_roadmap
 
 
 def _now() -> str:
@@ -194,10 +195,17 @@ class AnalysisPipeline:
         )
 
         await self._stage(run_id, owner_id, RunStatus.reporting, 0.92)
+        roadmap = build_decision_roadmap(
+            objective=case["objective"],
+            criteria=criteria,
+            comparisons=comparison,
+            decision=decision,
+        )
         report = {
             "case_id": case_id,
             "run_id": run_id,
             "decision": decision.model_dump(mode="json"),
+            "roadmap": roadmap.model_dump(mode="json"),
             "comparisons": [item.model_dump(mode="json") for item in comparison],
             "research": research,
             "generated_at": _now(),

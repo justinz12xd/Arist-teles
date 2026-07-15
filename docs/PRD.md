@@ -44,6 +44,7 @@ Una ejecución exitosa permite:
 - Recomendación no vinculante con confianza basada en evidencia.
 - Traza verificable de etapas y fuentes.
 - Reporte web y PDF.
+- Mapa visual de decisión con rutas por alternativa, criterios, riesgos, datos faltantes y próximos pasos.
 - Procesamiento asíncrono, reanudable e idempotente.
 - Eliminación del expediente y de todos sus datos derivados.
 
@@ -98,6 +99,7 @@ El usuario recibe:
 - confianza y desglose de su cálculo;
 - citas con documento, página y fragmento;
 - reporte descargable en PDF.
+- roadmap visual para entender por qué una ruta se recomienda, cuándo conviene una alternativa y qué información falta para resolver la decisión.
 
 ## Agentes
 

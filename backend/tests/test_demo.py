@@ -72,6 +72,9 @@ def test_demo_agent_accepts_pdf_and_returns_agent_flow() -> None:
         "comparison",
         "decision",
     }
+    assert payload["roadmap"]["objective"] == "Comparar proveedores"
+    assert payload["roadmap"]["paths"][0]["status"] in {"recommended", "alternative", "review"}
+    assert payload["roadmap"]["evidence_count"] >= 1
 
 
 def test_demo_agent_accepts_multiple_pdfs() -> None:

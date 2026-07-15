@@ -1,5 +1,5 @@
 from enum import StrEnum
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -10,6 +10,30 @@ class AgentName(StrEnum):
     research = "research"
     comparison = "comparison"
     decision = "decision"
+
+
+class ResearchMode(StrEnum):
+    auto = "auto"
+    web = "web"
+    documents = "documents"
+    hybrid = "hybrid"
+
+
+class ResearchCitation(BaseModel):
+    id: str
+    title: str = Field(min_length=1)
+    url: str = Field(min_length=1)
+    start_index: int | None = Field(default=None, ge=0)
+    end_index: int | None = Field(default=None, ge=0)
+
+
+class ResearchChatResponse(BaseModel):
+    mode: ResearchMode
+    answer: str = Field(min_length=1)
+    citations: list[ResearchCitation] = Field(default_factory=list)
+    model: str = Field(min_length=1)
+    stages: list[str] = Field(default_factory=lambda: ["router", "research", "citations"])
+    needs_review: bool = False
 
 
 class RunStatus(StrEnum):
@@ -94,6 +118,33 @@ class DecisionResult(BaseModel):
         if info.data.get("outcome") == "recommendation" and not value:
             raise ValueError("A recommendation requires a provider")
         return value
+
+
+class RoadmapCheckpoint(BaseModel):
+    criterion_key: str
+    label: str
+    value: str | None = None
+    state: Literal["supports", "caution", "blocks", "unknown"]
+    evidence_ids: list[str] = Field(default_factory=list)
+
+
+class DecisionPath(BaseModel):
+    option_id: str
+    label: str
+    status: Literal["recommended", "alternative", "review"]
+    score: float = Field(ge=0, le=1)
+    checkpoints: list[RoadmapCheckpoint] = Field(default_factory=list)
+    risks: list[str] = Field(default_factory=list)
+    next_action: str = Field(min_length=1)
+
+
+class DecisionRoadmap(BaseModel):
+    objective: str = Field(min_length=1)
+    criteria: list[Criterion] = Field(default_factory=list)
+    paths: list[DecisionPath] = Field(min_length=1)
+    recommended_option_id: str | None = None
+    resolution: str = Field(min_length=1)
+    evidence_count: int = Field(ge=0)
 
 
 class ProgressEvent(BaseModel):

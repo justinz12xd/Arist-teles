@@ -12,9 +12,9 @@ class RAGService:
         self.settings = settings
         self.repository = repository
         self.splitter = RecursiveCharacterTextSplitter(chunk_size=900, chunk_overlap=120)
-        self.client = AsyncOpenAI(
-            api_key=settings.openrouter_api_key, base_url=settings.openrouter_base_url
-        )
+        if settings.openai_api_key is None:
+            raise RuntimeError("OPENAI_API_KEY is required for RAG execution")
+        self.client = AsyncOpenAI(api_key=settings.openai_api_key.get_secret_value())
 
     def chunk(self, text: str) -> list[str]:
         return self.splitter.split_text(text)
@@ -24,7 +24,7 @@ class RAGService:
         if not values:
             return []
         response = await self.client.embeddings.create(
-            model=self.settings.openrouter_embedding_model,
+            model=self.settings.openai_embedding_model,
             input=values,
         )
         return [item.embedding for item in response.data]
@@ -51,7 +51,7 @@ class RAGService:
                     "chunk_index": index,
                     "content": content,
                     "embedding": embedding,
-                    "embedding_model": self.settings.openrouter_embedding_model,
+                    "embedding_model": self.settings.openai_embedding_model,
                 },
             )
         return len(chunks)

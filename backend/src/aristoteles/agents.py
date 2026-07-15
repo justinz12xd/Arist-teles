@@ -55,17 +55,20 @@ def parse_json(text: str) -> Any:
 class AgentRuntime:
     def __init__(self, settings: Settings):
         self.settings = settings
-        self.model = ChatOpenAI(
-            model=settings.openrouter_chat_model,
-            api_key=settings.openrouter_api_key,
-            base_url=settings.openrouter_base_url,
+
+    def _model_for(self, role: str) -> ChatOpenAI:
+        if self.settings.openai_api_key is None:
+            raise RuntimeError("OPENAI_API_KEY is required for agent execution")
+        return ChatOpenAI(
+            model=self.settings.model_for_agent(role),
+            api_key=self.settings.openai_api_key.get_secret_value(),
             temperature=0,
         )
 
     def build(self, role: str):
         return create_deep_agent(
             name=f"aristoteles-{role}",
-            model=self.model,
+            model=self._model_for(role),
             system_prompt=ROLE_PROMPTS[role],
         )
 

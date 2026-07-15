@@ -9,7 +9,29 @@ Primer corte vertical del RAG: una API FastAPI crea expedientes, indexa texto ya
 - La entrada de indexación son páginas de texto. PDF, imágenes, parsing y OCR no forman parte de este incremento.
 - El fallback de OCR visual sigue siendo futuro y configurable, fuera de este incremento RAG; no se cambia aquí su proveedor previsto.
 
+Como puente de demostración, la aplicación también expone `POST /v1/demo/agent` para recibir un
+PDF, extraer texto localmente y devolver el flujo visual junto con un mapa de decisión. Esta ruta es
+determinista y no reemplaza los endpoints RAG autenticados ni una ejecución multiagente real.
+
 OpenAI recibe el texto indexado para crear embeddings. Al responder, también recibe la pregunta y los chunks recuperados que forman el contexto. InsForge almacena los registros, el texto y los vectores, y aplica RLS con el JWT del usuario.
+
+## Runtime unificado
+
+El único proceso público es `aristoteles_api.main:app`. Este monta las rutas de análisis,
+RAG y demo bajo la misma aplicación FastAPI; no existe un segundo servidor para los
+subagentes. La configuración también es única: OpenAI directo para agentes y embeddings,
+con `OPENAI_FAST_MODEL` para Planner/Document/Research y `OPENAI_VERIFY_MODEL` para
+Comparison/Decision. La demo permanece como una ruta de prueba y no sustituye el pipeline.
+
+### Chat con evidencia web
+
+`POST /v1/chat/research` es la entrada que usa el chat principal. Acepta `objective`,
+`mode` (`web`, `documents`, `hybrid` o `auto`) y PDFs opcionales como `multipart/form-data`.
+Usa OpenAI Responses API con la herramienta `web_search`, conserva las citas URL devueltas
+por el proveedor y marca la respuesta para revisión cuando una consulta web no trae fuentes.
+En producción configure el mismo `ARISTOTELES_API_SHARED_SECRET` en el backend y el servidor
+Next.js: el proxy `app/api/research` lo envía como cabecera privada y la clave nunca llega al
+navegador.
 
 ## Requisitos
 

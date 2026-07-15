@@ -11,6 +11,8 @@ import {
   SearchCheck,
   Upload,
 } from "lucide-react";
+import { DecisionRoadmap } from "@/components/decision/DecisionRoadmap";
+import type { DecisionRoadmapData } from "@/lib/aristoteles-contracts";
 
 type Stage = {
   id: string;
@@ -69,6 +71,7 @@ type AgentResult = {
     };
     evidence_ids: string[];
   };
+  roadmap: DecisionRoadmapData;
 };
 
 const STAGE_ICONS = [Brain, FileText, SearchCheck, Scale, CheckCircle2];
@@ -156,6 +159,55 @@ function buildFallbackResult(objective: string, files: File[]): AgentResult {
         extraction_quality: 0.24,
       },
       evidence_ids: [],
+    },
+    roadmap: {
+      objective,
+      criteria: [
+        { key: "price", label: "Precio y costos", weight: 0.3 },
+        { key: "warranty", label: "Garantía", weight: 0.25 },
+        { key: "delivery", label: "Plazo", weight: 0.2 },
+        { key: "compliance", label: "Cumplimiento", weight: 0.15 },
+        { key: "risk", label: "Riesgo", weight: 0.1 },
+      ],
+      paths: [
+        {
+          option_id: "alternative-a",
+          label: "Alternativa A",
+          status: "review",
+          score: 0.24,
+          checkpoints: [
+            {
+              criterion_key: "evidence",
+              label: "Evidencia extraída",
+              value: null,
+              state: "unknown",
+              evidence_ids: [],
+            },
+          ],
+          risks: ["El backend todavía no ha extraído evidencia verificable."],
+          next_action: "Iniciar FastAPI y volver a analizar el documento.",
+        },
+        {
+          option_id: "alternative-b",
+          label: "Alternativa B",
+          status: "review",
+          score: 0.24,
+          checkpoints: [
+            {
+              criterion_key: "evidence",
+              label: "Evidencia extraída",
+              value: null,
+              state: "unknown",
+              evidence_ids: [],
+            },
+          ],
+          risks: ["El backend todavía no ha extraído evidencia verificable."],
+          next_action: "Iniciar FastAPI y volver a analizar el documento.",
+        },
+      ],
+      recommended_option_id: null,
+      resolution: "No se puede resolver la decisión hasta extraer y citar el contenido del PDF.",
+      evidence_count: 0,
     },
   };
 }
@@ -396,6 +448,8 @@ export function AgentConsole() {
                   </div>
                 </div>
               </div>
+
+              <DecisionRoadmap roadmap={result.roadmap} />
             </>
           )}
         </section>

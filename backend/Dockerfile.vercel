@@ -1,3 +1,5 @@
+# Keep this file synchronized with Dockerfile.
+# Vercel runs this HTTP server as a container-backed Function.
 # syntax=docker/dockerfile:1
 
 FROM python:3.12-slim-bookworm

@@ -24,9 +24,10 @@ class InsForgeRepository:
         token = self.access_token or self.settings.insforge_api_key
         if not token:
             raise RuntimeError("INSFORGE_API_KEY or a user access token is required")
-        headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+        token_value = token.get_secret_value() if hasattr(token, "get_secret_value") else token
+        headers = {"Authorization": f"Bearer {token_value}", "Content-Type": "application/json"}
         if self.settings.insforge_anon_key:
-            headers["apikey"] = self.settings.insforge_anon_key
+            headers["apikey"] = self.settings.insforge_anon_key.get_secret_value()
         return headers
 
     async def request(

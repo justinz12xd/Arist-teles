@@ -1,6 +1,8 @@
 "use client";
 
 import { AIVoiceInput } from "@/components/ui/ai-voice-input";
+import { DecisionRoadmap } from "@/components/decision/DecisionRoadmap";
+import type { DecisionRoadmapData } from "@/lib/aristoteles-contracts";
 import {
   ArrowUp,
   FileText,
@@ -18,7 +20,14 @@ import {
 import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from "react";
 
 type AgentResult = {
-  document: {
+  mode?: "web" | "documents" | "hybrid";
+  answer?: string;
+  citations?: Array<{
+    id: string;
+    title: string;
+    url: string;
+  }>;
+  document?: {
     filename: string;
     pages: number;
     quality_score: number;
@@ -29,7 +38,7 @@ type AgentResult = {
       preview: string;
     }>;
   };
-  research: {
+  research?: {
     evidence: Array<{ id: string; document: string; page: number; quote: string }>;
   };
   comparison?: Array<{
@@ -38,7 +47,7 @@ type AgentResult = {
     advantages: string[];
     disadvantages: string[];
   }>;
-  decision: {
+  decision?: {
     outcome: "recommendation" | "needs_review";
     recommended_provider_id: string | null;
     summary: string;
@@ -48,6 +57,7 @@ type AgentResult = {
       band: "high" | "medium" | "low";
     };
   };
+  roadmap?: DecisionRoadmapData;
 };
 
 type ChatMessage = {
@@ -140,27 +150,9 @@ function conversationalAnswer(question: string, files: File[]) {
 
 function fallbackAnswer(question: string, files: File[]): AgentResult {
   return {
-    document: {
-      filename: files.map((file) => file.name).join(", ") || "documentos.pdf",
-      pages: files.length || 1,
-      quality_score: 0.18,
-      previews: [
-        {
-          page_number: 1,
-          method: "browser-demo",
-          preview: "Backend no disponible. Ejecuta FastAPI y configura ARISTOTELES_API_URL para analizar PDFs reales.",
-        },
-      ],
-    },
-    research: { evidence: [] },
-    comparison: [],
-    decision: {
-      outcome: "needs_review",
-      recommended_provider_id: null,
-      summary: `No pude analizar evidencia real para: "${question}".`,
-      risk_items: ["Falta conectar el backend demo o cargar documentos procesables."],
-      confidence: { score: 0.18, band: "low" },
-    },
+    mode: files.length ? "hybrid" : "web",
+    answer: `No pude recuperar evidencia verificable para: "${question}".`,
+    citations: [],
   };
 }
 
@@ -245,13 +237,13 @@ export function ChatExperience() {
       }
       const result = (await response.json()) as AgentResult;
       appendAssistantMessage(
-        `Revisando todas las propuestas: ${result.decision.summary}`,
+        `Revisando todas las propuestas: ${result.decision?.summary ?? result.answer ?? "sin conclusión disponible"}`,
         result,
       );
     } catch {
       const result = fallbackAnswer(cleanQuestion, files);
       setError("Usando respuesta local. Inicia el backend para comparar todas las propuestas.");
-      appendAssistantMessage(result.decision.summary, result);
+      appendAssistantMessage(result.answer ?? "No pude generar una respuesta.", result);
     } finally {
       setIsSending(false);
     }
@@ -269,27 +261,15 @@ export function ChatExperience() {
     setIsSending(true);
     setError(null);
 
-    if (!files.length) {
-      setMessages((current) => [
-        ...current,
-        {
-          id: crypto.randomUUID(),
-          role: "assistant",
-          content: answerWithoutDocuments(cleanQuestion),
-        },
-      ]);
-      setIsSending(false);
-      return;
-    }
-
     const formData = new FormData();
     formData.set("objective", cleanQuestion);
+    formData.set("mode", files.length ? "hybrid" : "web");
     for (const file of files) {
       formData.append("files", file);
     }
 
     try {
-      const response = await fetch("/api/agent-demo", {
+      const response = await fetch("/api/research", {
         method: "POST",
         body: formData,
       });
@@ -297,11 +277,11 @@ export function ChatExperience() {
         throw new Error("Backend unavailable");
       }
       const result = (await response.json()) as AgentResult;
-      appendAssistantMessage(result.decision.summary, result);
+      appendAssistantMessage(result.answer ?? result.decision?.summary ?? "No pude generar una respuesta.", result);
     } catch {
       const result = fallbackAnswer(cleanQuestion, files);
-      setError("Usando respuesta local. Inicia el backend para extraer evidencia real de los PDFs.");
-      appendAssistantMessage(result.decision.summary, result);
+      setError("No pude conectar con el investigador. Verifica el backend y la configuración de OpenAI.");
+      appendAssistantMessage(result.answer ?? "No pude generar una respuesta.", result);
     } finally {
       setIsSending(false);
     }
@@ -373,9 +353,9 @@ export function ChatExperience() {
                   <div className="mx-auto mb-5 flex h-11 w-11 items-center justify-center rounded-full border border-[rgb(216_177_95/0.24)] bg-[rgb(216_177_95/0.08)]">
                     <Sparkles size={18} className="text-[var(--accent-cyan)]" />
                   </div>
-                  <h1 className="text-2xl font-medium text-white sm:text-3xl">Pregunta sobre tus documentos.</h1>
+                  <h1 className="text-2xl font-medium text-white sm:text-3xl">Pregunta y contrasta con evidencia.</h1>
                   <p className="mx-auto mt-3 max-w-lg text-sm leading-6 text-[var(--primary-44)]">
-                    Adjunta uno o varios PDFs y pide comparaciones, riesgos, garantias o evidencia localizada.
+                    Investigo la web con fuentes citables. Adjunta PDFs para contrastarlos con evidencia externa.
                   </p>
                 </div>
               ) : (
@@ -391,27 +371,30 @@ export function ChatExperience() {
                         {message.result && (
                           <div className="mt-4 space-y-3 border-t border-white/10 pt-4">
                             <div className="flex flex-wrap gap-2 text-xs text-[var(--primary-44)]">
-                              <span>{message.result.document.pages} paginas</span>
-                              <span>confianza {Math.round(message.result.decision.confidence.score * 100)}%</span>
-                              <span>{message.result.decision.confidence.band}</span>
+                              <span>{message.result.mode === "hybrid" ? "web + documentos" : "web"}</span>
+                              {message.result.document && <span>{message.result.document.pages} páginas</span>}
+                              <span>{message.result.citations?.length ?? 0} fuentes</span>
+                              {message.result.decision && (
+                                <span>confianza {Math.round(message.result.decision.confidence.score * 100)}%</span>
+                              )}
                             </div>
-                            {message.result.decision.recommended_provider_id && (
+                            {message.result.decision?.recommended_provider_id && (
                               <div className="rounded-lg border border-[rgb(34_211_238/0.24)] bg-[rgb(34_211_238/0.08)] p-3">
                                 <p className="text-xs uppercase tracking-[0.18em] text-[var(--accent-cyan)]">
                                   ganadora
                                 </p>
                                 <h3 className="mt-2 text-base font-medium text-white">
-                                  {message.result.decision.recommended_provider_id}
+                                  {message.result.decision?.recommended_provider_id}
                                 </h3>
                                 <p className="mt-2 text-xs leading-5 text-[var(--primary-70)]">
-                                  {message.result.decision.summary}
+                                  {message.result.decision?.summary}
                                 </p>
-                                {message.result.decision.risk_items.length > 0 && (
+                                {(message.result.decision?.risk_items.length ?? 0) > 0 && (
                                   <div className="mt-3 space-y-1">
                                     <p className="text-xs uppercase tracking-[0.14em] text-[var(--primary-44)]">
                                       revisar antes de decidir
                                     </p>
-                                    {message.result.decision.risk_items.slice(0, 3).map((risk) => (
+                                    {message.result.decision?.risk_items.slice(0, 3).map((risk) => (
                                       <p key={risk} className="text-xs leading-5 text-amber-200">
                                         {risk}
                                       </p>
@@ -420,7 +403,22 @@ export function ChatExperience() {
                                 )}
                               </div>
                             )}
-                            {message.result.research.evidence.slice(0, 3).map((item) => (
+                            {message.result.citations?.map((citation) => (
+                              <a
+                                key={citation.id}
+                                href={citation.url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="block rounded-lg border border-white/10 bg-white/[0.03] p-3 transition-colors hover:border-[rgb(216_177_95/0.35)]"
+                              >
+                                <div className="mb-1 flex items-center gap-2 text-xs text-[var(--primary-44)]">
+                                  <Search size={12} className="text-[var(--accent-cyan)]" />
+                                  Fuente verificable
+                                </div>
+                                <p className="text-xs leading-5 text-[var(--primary-60)]">{citation.title}</p>
+                              </a>
+                            ))}
+                            {message.result.research?.evidence.slice(0, 3).map((item) => (
                               <div key={item.id} className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
                                 <div className="mb-1 flex items-center gap-2 text-xs text-[var(--primary-44)]">
                                   <FileText size={12} className="text-[var(--accent-cyan)]" />
@@ -447,6 +445,7 @@ export function ChatExperience() {
                                 </p>
                               </div>
                             ))}
+                            {message.result.roadmap && <DecisionRoadmap roadmap={message.result.roadmap} />}
                           </div>
                         )}
                       </div>

@@ -1,19 +1,34 @@
 import base64
+import hmac
 import json
 from datetime import UTC, datetime
 from typing import Annotated
 
-from fastapi import BackgroundTasks, Depends, FastAPI, Header, HTTPException, Response, status
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    FastAPI,
+    File,
+    Form,
+    Header,
+    HTTPException,
+    Response,
+    UploadFile,
+    status,
+)
 
 from .agents import AgentRuntime
 from .config import Settings, get_settings
-from .contracts import CaseCreate, CriteriaConfirmation, DocumentRegister, RunStatus
+from .contracts import CaseCreate, CriteriaConfirmation, DocumentRegister, ResearchMode, RunStatus
 from .demo import demo_agent_endpoint
 from .extraction import extract_image, extract_pdf
 from .insforge import InsForgeError, InsForgeRepository
 from .pipeline import AnalysisPipeline
+from .web_research import WebResearchService
 
-app = FastAPI(title="Aristóteles API", version="0.1.0")
+router = APIRouter(tags=["analysis"])
+SettingsContext = Annotated[Settings, Depends(get_settings)]
 
 
 def _user_id(token: str) -> str:
@@ -30,8 +45,8 @@ def _user_id(token: str) -> str:
 
 
 async def auth_context(
+    settings: SettingsContext,
     authorization: Annotated[str | None, Header()] = None,
-    settings: Settings = Depends(get_settings),
 ) -> tuple[str, InsForgeRepository]:
     if not authorization or not authorization.lower().startswith("bearer "):
         raise HTTPException(status_code=401, detail="Bearer token required")
@@ -50,15 +65,52 @@ def _insforge_error(exc: InsForgeError) -> HTTPException:
     return HTTPException(status_code=502, detail="InsForge request failed")
 
 
-@app.get("/health")
+@router.get("/health", tags=["health"])
 async def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
-app.post("/v1/demo/agent")(demo_agent_endpoint)
+router.post("/v1/demo/agent", tags=["agent-demo"])(demo_agent_endpoint)
 
 
-@app.post("/v1/cases", status_code=status.HTTP_201_CREATED)
+@router.post("/v1/chat/research", tags=["chat"])
+async def research_chat(
+    objective: Annotated[str, Form(min_length=1, max_length=4_000)],
+    settings: SettingsContext,
+    mode: Annotated[ResearchMode, Form()] = ResearchMode.auto,
+    files: Annotated[list[UploadFile] | None, File()] = None,
+    x_aristoteles_proxy: Annotated[str | None, Header()] = None,
+) -> dict:
+    """Fast public-chat bridge: web evidence alone or web evidence plus uploaded PDFs."""
+    if settings.aristoteles_api_shared_secret is not None:
+        expected = settings.aristoteles_api_shared_secret.get_secret_value()
+        if not x_aristoteles_proxy or not hmac.compare_digest(x_aristoteles_proxy, expected):
+            raise HTTPException(status_code=401, detail="Invalid chat proxy credential")
+
+    documents: list[str] = []
+    for upload in files or []:
+        if upload.content_type != "application/pdf":
+            raise HTTPException(status_code=400, detail="Only PDF documents are accepted")
+        try:
+            pages = extract_pdf(await upload.read())
+        except Exception as exc:  # pragma: no cover - parser exceptions vary by file.
+            raise HTTPException(status_code=400, detail=f"{upload.filename} could not be processed") from exc
+        text = "\n".join(page.text for page in pages if page.text.strip())
+        if text:
+            documents.append(f"Documento: {upload.filename or 'documento.pdf'}\n{text}")
+
+    try:
+        result = await WebResearchService(settings).answer(
+            objective=objective,
+            mode=mode,
+            documents=documents,
+        )
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail="Research service is not available") from exc
+    return result.model_dump(mode="json")
+
+
+@router.post("/v1/cases", status_code=status.HTTP_201_CREATED)
 async def create_case(payload: CaseCreate, context: AuthContext) -> dict:
     owner_id, repository = context
     try:
@@ -67,7 +119,7 @@ async def create_case(payload: CaseCreate, context: AuthContext) -> dict:
         raise _insforge_error(exc) from exc
 
 
-@app.get("/v1/cases/{case_id}")
+@router.get("/v1/cases/{case_id}")
 async def get_case(case_id: str, context: AuthContext) -> dict:
     owner_id, repository = context
     try:
@@ -81,7 +133,7 @@ async def get_case(case_id: str, context: AuthContext) -> dict:
     return result
 
 
-@app.post("/v1/cases/{case_id}/documents", status_code=status.HTTP_201_CREATED)
+@router.post("/v1/cases/{case_id}/documents", status_code=status.HTTP_201_CREATED)
 async def register_document(case_id: str, payload: DocumentRegister, context: AuthContext) -> dict:
     owner_id, repository = context
     if not payload.storage_key.startswith(f"{owner_id}/{case_id}/"):
@@ -99,7 +151,7 @@ async def register_document(case_id: str, payload: DocumentRegister, context: Au
         raise _insforge_error(exc) from exc
 
 
-@app.post("/v1/cases/{case_id}/documents/{document_id}/extract")
+@router.post("/v1/cases/{case_id}/documents/{document_id}/extract")
 async def extract_document(case_id: str, document_id: str, context: AuthContext) -> dict:
     owner_id, repository = context
     document = await repository.select_one(
@@ -139,9 +191,9 @@ async def extract_document(case_id: str, document_id: str, context: AuthContext)
     return {"document": updated, "pages": [page.__dict__ for page in pages]}
 
 
-@app.post("/v1/cases/{case_id}/plans", status_code=status.HTTP_201_CREATED)
+@router.post("/v1/cases/{case_id}/plans", status_code=status.HTTP_201_CREATED)
 async def create_plan(
-    case_id: str, context: AuthContext, settings: Settings = Depends(get_settings)
+    case_id: str, context: AuthContext, settings: SettingsContext
 ) -> dict:
     owner_id, repository = context
     case = await repository.select_one(
@@ -172,7 +224,7 @@ async def create_plan(
     return {"run_id": run["id"], "plan": plan.model_dump(mode="json")}
 
 
-@app.put("/v1/plans/{run_id}/criteria")
+@router.put("/v1/plans/{run_id}/criteria")
 async def confirm_criteria(
     run_id: str, payload: CriteriaConfirmation, context: AuthContext
 ) -> dict:
@@ -200,12 +252,12 @@ async def confirm_criteria(
     return updated or run
 
 
-@app.post("/v1/plans/{run_id}/runs", status_code=status.HTTP_202_ACCEPTED)
+@router.post("/v1/plans/{run_id}/runs", status_code=status.HTTP_202_ACCEPTED)
 async def start_run(
     run_id: str,
     background: BackgroundTasks,
     context: AuthContext,
-    settings: Settings = Depends(get_settings),
+    settings: SettingsContext,
 ) -> dict:
     owner_id, repository = context
     run = await repository.select_one(
@@ -243,7 +295,7 @@ async def execute_run(
         )
 
 
-@app.get("/v1/runs/{run_id}")
+@router.get("/v1/runs/{run_id}")
 async def get_run(run_id: str, context: AuthContext) -> dict:
     owner_id, repository = context
     try:
@@ -257,7 +309,7 @@ async def get_run(run_id: str, context: AuthContext) -> dict:
     return result
 
 
-@app.get("/v1/runs/{run_id}/report")
+@router.get("/v1/runs/{run_id}/report")
 async def get_report(run_id: str, context: AuthContext) -> dict:
     owner_id, repository = context
     try:
@@ -271,7 +323,7 @@ async def get_report(run_id: str, context: AuthContext) -> dict:
     return report["report"]
 
 
-@app.get("/v1/runs/{run_id}/report.pdf")
+@router.get("/v1/runs/{run_id}/report.pdf")
 async def get_report_pdf(run_id: str, context: AuthContext) -> Response:
     from .reporting import render_pdf
 
@@ -281,3 +333,13 @@ async def get_report_pdf(run_id: str, context: AuthContext) -> Response:
         media_type="application/pdf",
         headers={"Content-Disposition": f'attachment; filename="aristoteles-{run_id}.pdf"'},
     )
+
+
+def create_legacy_app() -> FastAPI:
+    """Compatibility factory; production uses ``aristoteles_api.main``."""
+    application = FastAPI(title="Aristóteles API", version="0.1.0")
+    application.include_router(router)
+    return application
+
+
+app = create_legacy_app()

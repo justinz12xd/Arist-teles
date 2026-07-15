@@ -9,3 +9,12 @@ def test_health_does_not_require_external_credentials() -> None:
 
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
+
+
+def test_agent_demo_route_is_registered() -> None:
+    paths = {route.path for route in create_app().routes}
+
+    assert "/v1/demo/agent" in paths
+    assert "/v1/chat/research" in paths
+    assert "/v1/cases" in paths
+    assert "/v1/runs/{run_id}/report" in paths

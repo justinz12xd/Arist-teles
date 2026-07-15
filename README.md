@@ -69,6 +69,44 @@ uv run uvicorn aristoteles_api.main:app --reload --port 8000
 
 Consulte [`backend/README.md`](backend/README.md) para configurar OpenAI, enlazar InsForge, aplicar la migracion y ejecutar el smoke test de RLS con dos usuarios.
 
+## Docker
+
+El repositorio incluye dos imagenes de produccion:
+
+- `Dockerfile`: frontend Next.js con salida `standalone`, ejecutado como usuario sin privilegios.
+- `backend/Dockerfile`: API FastAPI con OCR y renderizado PDF, tambien ejecutada sin privilegios.
+
+Para construir y levantar ambas imagenes:
+
+```bash
+cp backend/.env.example backend/.env
+docker compose up --build
+```
+
+La web queda disponible en `http://localhost:3000` y la salud del backend en
+`http://localhost:8080/health`. El frontend usa la red privada de Compose para llamar a
+`http://backend:8080`; no es necesario exponer una URL publica del backend en el navegador.
+
+## Despliegue conjunto en Vercel
+
+`vercel.json` define dos Vercel Services basados en contenedores:
+
+- `frontend` sirve Next.js en `/`.
+- `backend` sirve FastAPI y se publica bajo `/svc/api/*`.
+
+Vercel construye `Dockerfile.vercel` y `backend/Dockerfile.vercel`. El Route Handler del
+frontend utiliza `BACKEND_URL`, que Vercel Services inyecta automaticamente, y conserva
+`ARISTOTELES_API_URL` como override para despliegues separados.
+
+Antes del primer deploy:
+
+1. Cree un proyecto en Vercel desde la raiz del repositorio y seleccione **Services** como framework.
+2. Configure en Vercel las variables de `backend/.env.example` que use el entorno.
+3. Ejecute `vercel deploy` para preview o `vercel deploy --prod` para produccion.
+
+Los contenedores de Vercel son stateless. Archivos, sesiones, vectores y resultados persistentes
+deben mantenerse en InsForge u otro servicio externo, nunca en el filesystem del contenedor.
+
 ## Documentacion
 
 - [Requisitos del producto](docs/PRD.md)

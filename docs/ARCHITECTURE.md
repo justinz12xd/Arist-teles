@@ -94,6 +94,10 @@ sequenceDiagram
     Report-->>User: Vista web + PDF
 ```
 
+El reporte también incluye un `DecisionRoadmap` construido de forma determinista a partir de
+criterios, comparaciones y evidencia validada. El modelo no dibuja el mapa libremente: cada ruta,
+puntaje, alerta y cita se deriva de los contratos persistidos para que la visualización sea auditable.
+
 ### Despacho adaptativo
 
 - `Document` prepara siempre el corpus antes del análisis.
@@ -171,6 +175,36 @@ Los siguientes tipos son contratos públicos entre API, agentes, persistencia y 
 ```
 
 `outcome` admite `recommendation` o `needs_review`. Si es `needs_review`, `recommended_provider_id` debe ser `null` y el resultado debe explicar qué información falta o se contradice.
+
+### DecisionRoadmap
+
+```json
+{
+  "objective": "Seleccionar proveedor",
+  "criteria": [{ "key": "price", "label": "Precio", "weight": 0.35 }],
+  "paths": [{
+    "option_id": "provider-b",
+    "label": "Proveedor B",
+    "status": "recommended",
+    "score": 0.86,
+    "checkpoints": [{
+      "criterion_key": "warranty",
+      "label": "Garantía",
+      "value": "24 meses",
+      "state": "supports",
+      "evidence_ids": ["uuid"]
+    }],
+    "risks": [],
+    "next_action": "Validar los términos finales y someter la opción a aprobación humana."
+  }],
+  "recommended_option_id": "provider-b",
+  "resolution": "Proveedor B presenta el mejor equilibrio verificable.",
+  "evidence_count": 9
+}
+```
+
+Los estados de un checkpoint son `supports`, `caution`, `blocks` o `unknown`. El mapa muestra
+opciones y condiciones para resolver la decisión; nunca sustituye la aprobación humana.
 
 ### ProgressEvent
 
