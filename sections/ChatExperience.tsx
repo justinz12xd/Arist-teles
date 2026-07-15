@@ -4,6 +4,12 @@ import { AIVoiceInput } from "@/components/ui/ai-voice-input";
 import { DecisionRoadmap } from "@/components/decision/DecisionRoadmap";
 import { agentDemoUrl, chatResearchUrl } from "@/lib/backend-api";
 import { saveChatMessage } from "@/lib/chat-store";
+import {
+  getLocalChatSession,
+  listLocalChatSessions,
+  saveLocalChatMessage,
+  type LocalChatSession,
+} from "@/lib/local-chat-store";
 import { supabase } from "@/lib/supabase";
 import type { DecisionRoadmapData } from "@/lib/aristoteles-contracts";
 import {
@@ -73,6 +79,14 @@ type ChatMessage = {
   result?: AgentResult;
 };
 
+type HistoryItem = {
+  id?: string;
+  title: string;
+  preview: string;
+  active: boolean;
+  local: boolean;
+};
+
 const CHAT_HISTORY = [
   { title: "Renovacion de equipos", preview: "Proveedor B lidera; 2 riesgos pendientes.", active: true },
   { title: "Contrato de soporte", preview: "Clausula de penalidad requiere revision.", active: false },
@@ -102,8 +116,22 @@ function normalizeQuestion(value: string) {
     .trim();
 }
 
-function answerWithoutDocuments(question: string) {
+function answerWithoutDocuments(question: string): string {
   const normalized = normalizeQuestion(question);
+  const questionParts = question
+    .split(/(?:\?+|\n+|(?:^|\s)(?:y tambien|tambien|ademas|otra pregunta)[:\s]+)/i)
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  if (questionParts.length >= 2) {
+    return questionParts
+      .slice(0, 6)
+      .map((part, index) => {
+        const answer = answerWithoutDocuments(part);
+        return `${index + 1}. ${part}\n${answer}`;
+      })
+      .join("\n\n");
+  }
 
   if (/^(hola|buenas|hey|hi|hello)\b/.test(normalized)) {
     return "Hola. Puedo responder preguntas generales sobre Aristoteles o analizar PDFs si los adjuntas.";
@@ -117,17 +145,77 @@ function answerWithoutDocuments(question: string) {
     return "Puedo comparar proveedores, empresas o apps por precio, garantia, plazo, cumplimiento y riesgo. Si adjuntas varios PDFs, trato cada PDF como una alternativa y muestro beneficios, desventajas y recomendacion.";
   }
 
+  if (
+    normalized.includes("opcion") ||
+    normalized.includes("opciones") ||
+    normalized.includes("cual elijo") ||
+    normalized.includes("cual conviene") ||
+    normalized.includes("elige")
+  ) {
+    const mentionsA = normalized.includes("opcion a") || normalized.includes(" a ");
+    const mentionsB = normalized.includes("opcion b") || normalized.includes(" b ");
+    const mentionsC = normalized.includes("opcion c") || normalized.includes(" c ");
+    if (mentionsA || mentionsB || mentionsC) {
+      return [
+        "Con lo que dices, eligiria la opcion A.",
+        "",
+        "Beneficios y ventajas:",
+        "- Opcion A: da mas dinero. Ventaja principal: tiene el beneficio economico mas claro.",
+        "- Opcion B: podria servir solo si tiene un beneficio muy alto que no mencionaste.",
+        "- Opcion C: no veo beneficios con la informacion actual.",
+        "",
+        "Desventajas y riesgos:",
+        "- Opcion A: falta revisar si ese dinero extra trae algun riesgo oculto, esfuerzo extra o condicion.",
+        "- Opcion B: dices que es mas peligrosa; esa es una desventaja fuerte.",
+        "- Opcion C: no da beneficios, entonces consume oportunidad sin aportar valor.",
+        "",
+        "Decision: A es la mejor si el riesgo de A es aceptable. No elegiria B salvo que el dinero/beneficio compense claramente el peligro. No elegiria C porque no aporta ventaja.",
+        "",
+        "Antes de cerrar, revisa: cuanto dinero extra da A, que riesgo real tiene B, y si C tiene algun beneficio oculto como seguridad, estabilidad o menor esfuerzo.",
+      ].join("\n");
+    }
+  }
+
   if (normalized.includes("riesgo") || normalized.includes("decidir") || normalized.includes("decision")) {
     return [
-      "Antes de decidir revisaria estos riesgos:",
+      "Para decidir, separaria beneficios, ventajas y desventajas.",
       "",
+      "Beneficios y ventajas a buscar:",
+      "1. Mayor dinero, ahorro o retorno.",
+      "2. Menor riesgo personal, legal, tecnico o economico.",
+      "3. Menor esfuerzo y menor tiempo de implementacion.",
+      "4. Mejor garantia, soporte o estabilidad.",
+      "5. Mas flexibilidad para cambiar de decision despues.",
+      "",
+      "Desventajas y riesgos a revisar:",
       "1. Costos ocultos: instalacion, soporte, renovaciones, penalidades o extras no incluidos.",
-      "2. Garantia y soporte: duracion, tiempos de respuesta, cobertura real y exclusiones.",
-      "3. Entrega e implementacion: fechas, dependencias, retrasos y capacidad de cumplir.",
-      "4. Contrato: permanencia, cancelacion, renovacion automatica, multas y responsabilidades.",
-      "5. Evidencia faltante: si una propuesta no declara algo importante, eso pesa como riesgo.",
+      "2. Riesgo alto: peligro, perdida de dinero, dependencia de terceros o baja confiabilidad.",
+      "3. Falta de garantia o soporte claro.",
+      "4. Condiciones de contrato: permanencia, cancelacion, renovacion automatica y multas.",
+      "5. Evidencia faltante: si una opcion no declara algo importante, eso pesa como riesgo.",
       "",
-      "Para elegir mejor, adjunta las propuestas en PDF y puedo comparar beneficios, desventajas, ganadora y por que.",
+      "Recomendacion: elige la opcion con mayor beneficio claro y menor riesgo serio. Si me das las opciones en texto, te digo la ganadora y por que.",
+    ].join("\n");
+  }
+
+  if (
+    normalized.includes("que hago") ||
+    normalized.includes("que deberia") ||
+    normalized.includes("me conviene") ||
+    normalized.includes("recomienda") ||
+    normalized.includes("ayudame")
+  ) {
+    return [
+      "Puedo ayudarte a decidir aunque no subas PDF.",
+      "",
+      "Voy a mirar:",
+      "1. Beneficios: que ganas con cada opcion.",
+      "2. Ventajas: por que una opcion es mejor que otra.",
+      "3. Desventajas: que pierdes o que limita cada opcion.",
+      "4. Riesgos: que puede salir mal.",
+      "5. Ganadora: cual conviene y por que.",
+      "",
+      "Si me das las opciones en texto, te digo cual elegiria y por que.",
     ].join("\n");
   }
 
@@ -192,12 +280,15 @@ export function ChatExperience() {
   const [historySearch, setHistorySearch] = useState("");
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const [chatSessionId, setChatSessionId] = useState<string | null>(null);
+  const [localChatSessionId, setLocalChatSessionId] = useState<string | null>(null);
+  const [localSessions, setLocalSessions] = useState<LocalChatSession[]>([]);
   const [authEmail, setAuthEmail] = useState("");
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [authStatus, setAuthStatus] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatSessionIdRef = useRef<string | null>(null);
+  const localChatSessionIdRef = useRef<string | null>(null);
   const persistQueueRef = useRef(Promise.resolve());
 
   const canSend = useMemo(
@@ -205,18 +296,35 @@ export function ChatExperience() {
     [isSending, question],
   );
   const visibleHistory = useMemo(() => {
+    const savedChats: HistoryItem[] = localSessions.map((session) => ({
+      id: session.id,
+      title: session.title,
+      preview: session.preview || "Chat guardado localmente.",
+      active: session.id === localChatSessionId,
+      local: true,
+    }));
     const query = normalizeQuestion(historySearch);
     if (!query) {
-      return CHAT_HISTORY;
+      return [
+        ...savedChats,
+        ...CHAT_HISTORY.map((chat) => ({ ...chat, local: false }) satisfies HistoryItem),
+      ];
     }
-    return CHAT_HISTORY.filter((chat) =>
+    return [
+      ...savedChats,
+      ...CHAT_HISTORY.map((chat) => ({ ...chat, local: false }) satisfies HistoryItem),
+    ].filter((chat) =>
       normalizeQuestion(`${chat.title} ${chat.preview}`).includes(query),
     );
-  }, [historySearch]);
+  }, [historySearch, localChatSessionId, localSessions]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages]);
+
+  useEffect(() => {
+    setLocalSessions(listLocalChatSessions());
+  }, []);
 
   useEffect(() => {
     if (!supabase) {
@@ -257,6 +365,29 @@ export function ChatExperience() {
     setMessages([]);
     setError(null);
     setCopiedMessageId(null);
+    setChatSessionId(null);
+    setLocalChatSessionId(null);
+    chatSessionIdRef.current = null;
+    localChatSessionIdRef.current = null;
+  }
+
+  function openLocalChat(sessionId: string) {
+    const session = getLocalChatSession(sessionId);
+    if (!session) {
+      return;
+    }
+    setMessages(
+      session.messages.map((message) => ({
+        id: message.id,
+        role: message.role,
+        content: message.content,
+        result: message.result as AgentResult | undefined,
+      })),
+    );
+    setFiles([]);
+    setError(null);
+    setLocalChatSessionId(session.id);
+    localChatSessionIdRef.current = session.id;
     setChatSessionId(null);
     chatSessionIdRef.current = null;
   }
@@ -300,6 +431,16 @@ export function ChatExperience() {
   }
 
   function persistMessage(role: "user" | "assistant", content: string, result?: AgentResult) {
+    const localSessionId = saveLocalChatMessage({
+      sessionId: localChatSessionIdRef.current,
+      role,
+      content,
+      result,
+    });
+    localChatSessionIdRef.current = localSessionId;
+    setLocalChatSessionId(localSessionId);
+    setLocalSessions(listLocalChatSessions());
+
     persistQueueRef.current = persistQueueRef.current.then(async () => {
       const sessionId = await saveChatMessage({
         sessionId: chatSessionIdRef.current,
@@ -479,6 +620,11 @@ export function ChatExperience() {
                 <button
                   key={chat.title}
                   type="button"
+                  onClick={() => {
+                    if (chat.local && chat.id) {
+                      openLocalChat(chat.id);
+                    }
+                  }}
                   className={`group w-full rounded-lg px-3 py-2 text-left transition-colors ${
                     chat.active ? "bg-[rgb(216_177_95/0.12)]" : "hover:bg-white/8"
                   }`}
@@ -487,7 +633,10 @@ export function ChatExperience() {
                     <MessageSquare size={14} className={chat.active ? "text-[var(--accent-cyan)]" : "text-[var(--primary-44)]"} />
                     <p className="truncate text-sm text-white">{chat.title}</p>
                   </div>
-                  <p className="mt-1 truncate pl-6 text-xs text-[var(--primary-44)]">{chat.preview}</p>
+                  <p className="mt-1 truncate pl-6 text-xs text-[var(--primary-44)]">
+                    {chat.local ? "local · " : ""}
+                    {chat.preview}
+                  </p>
                 </button>
               ))}
               {visibleHistory.length === 0 && (
