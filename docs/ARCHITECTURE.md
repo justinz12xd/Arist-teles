@@ -2,7 +2,7 @@
 
 ## Decisión
 
-Aristóteles usará un orquestador Python basado en Deep Agents con cinco agentes especializados. InsForge proporcionará identidad, almacenamiento, datos, vectores, modelos y eventos. Las operaciones que necesitan reproducibilidad permanecerán como herramientas deterministas.
+Aristóteles usará un orquestador Python basado en Deep Agents con cinco agentes especializados. InsForge proporcionará Auth, Storage, Postgres, `pgvector` y Realtime. El núcleo RAG llamará directamente a OpenAI para chat y embeddings. Las operaciones que necesitan reproducibilidad permanecerán como herramientas deterministas.
 
 Esta separación es esencial: un agente decide **qué herramienta utilizar**; la herramienta garantiza **cómo se ejecuta y valida** la operación.
 
@@ -15,7 +15,7 @@ flowchart LR
     FE -->|REST| API[FastAPI]
     API --> ORCH[Orquestador Deep Agents]
     ORCH --> TOOLS[Herramientas documentales]
-    ORCH --> AI[OpenRouter mediante InsForge]
+    ORCH --> AI[OpenAI directo: chat y embeddings]
     TOOLS --> IF
     ORCH --> IF
     IF -->|Realtime privado| FE
@@ -31,9 +31,10 @@ flowchart LR
 | Validación | Pydantic | Contratos de entrada, salida y eventos |
 | Extracción | PyMuPDF, pdfplumber | Texto, páginas, tablas y renderizado |
 | OCR local | Tesseract con idioma español | Imágenes y páginas escaneadas |
-| OCR fallback | Modelo visual configurable por OpenRouter | Páginas bajo el umbral de calidad |
+| OCR fallback | Modelo visual configurable por OpenRouter | Futuro y fuera de este incremento RAG; páginas bajo el umbral de calidad |
 | PDF | Plantilla HTML y WeasyPrint | Reporte reproducible |
-| Backend gestionado | InsForge | Auth, Storage, Postgres, pgvector, AI y Realtime |
+| Backend gestionado | InsForge | Auth, Storage, Postgres, pgvector y Realtime |
+| Modelos RAG | API de OpenAI mediante `langchain-openai` | Chat estructurado y embeddings directos |
 | Observabilidad | Logs estructurados, métricas y LangSmith | Duración, errores, costo y calidad |
 
 La imagen OCI se desplegará primero en InsForge Compute. Como Compute está sujeto a habilitación por proyecto, la misma imagen podrá ejecutarse temporalmente en otro proveedor sin cambiar contratos ni datos.
@@ -282,7 +283,7 @@ Cada etapa escribe su resultado validado antes de publicar el siguiente estado. 
 - Validación de MIME real, tamaño, hash y ownership antes de procesar.
 - Contenido documental delimitado como datos; nunca se incorpora como instrucciones del sistema.
 - Herramientas allowlist por agente y argumentos validados.
-- Secrets administrados por InsForge y nunca expuestos al cliente.
+- Credenciales de InsForge, OpenAI y del futuro proveedor visual se administran server-side y nunca se exponen al cliente.
 - Workers con acceso administrativo usan repositorios centralizados que exigen `owner_id`, `case_id` y `run_id`.
 - Reportes escapan contenido y solo citan fragmentos aprobados por el contrato.
 - Borrado del expediente elimina filas, objetos de Storage y tareas pendientes.

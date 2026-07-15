@@ -32,16 +32,14 @@ Usuario
 
 ## Estado actual
 
-El repositorio integra dos piezas:
+El repositorio contiene el frontend y la estructura inicial del backend RAG:
 
 - `app/`, `components/` y `sections/`: landing Next.js que explica el flujo del MVP con estetica de consola orbital.
-- `backend/src/aristoteles/`: API FastAPI inicial para casos, documentos, extraccion, planes, criterios, ejecuciones y reporte.
+- `backend/`: primer corte FastAPI para crear expedientes, indexar texto por pagina y responder preguntas con citas.
 
-El ultimo commit (`feat(agents): wire multiagent analysis API`) agrego:
+El RAG inicial usa OpenAI directamente para chat y embeddings. InsForge permanece como plataforma de Auth, Storage, Postgres, `pgvector` y Realtime; en este corte se usan Auth, Postgres y `pgvector`.
 
-- `AgentRuntime` con roles `planner`, `document`, `research`, `comparison` y `decision`.
-- Endpoints `/v1/cases`, `/v1/cases/{case_id}/documents`, `/v1/cases/{case_id}/plans`, `/v1/plans/{run_id}/criteria`, `/v1/plans/{run_id}/runs`, `/v1/runs/{run_id}` y `/v1/runs/{run_id}/report`.
-- `AnalysisPipeline` para ejecutar etapas, persistir tareas de agentes, generar comparaciones, decision y reporte.
+La carga de archivos, parsing de PDF o imagenes, OCR, fallback visual, agentes, jobs, Realtime y reportes siguen fuera de este incremento. El fallback visual permanece futuro y configurable, sin cambiar aqui su proveedor previsto.
 
 ## Principios
 
@@ -64,9 +62,12 @@ Backend:
 
 ```bash
 cd backend
-uv run pytest
-uv run uvicorn aristoteles.api:app --reload
+uv sync --python 3.12
+uv run pytest -q
+uv run uvicorn aristoteles_api.main:app --reload --port 8000
 ```
+
+Consulte [`backend/README.md`](backend/README.md) para configurar OpenAI, enlazar InsForge, aplicar la migracion y ejecutar el smoke test de RLS con dos usuarios.
 
 ## Documentacion
 

@@ -8,10 +8,10 @@ from fastapi import BackgroundTasks, Depends, FastAPI, Header, HTTPException, Re
 from .agents import AgentRuntime
 from .config import Settings, get_settings
 from .contracts import CaseCreate, CriteriaConfirmation, DocumentRegister, RunStatus
+from .demo import demo_agent_endpoint
 from .extraction import extract_image, extract_pdf
 from .insforge import InsForgeError, InsForgeRepository
 from .pipeline import AnalysisPipeline
-from .reporting import render_pdf
 
 app = FastAPI(title="Aristóteles API", version="0.1.0")
 
@@ -53,6 +53,9 @@ def _insforge_error(exc: InsForgeError) -> HTTPException:
 @app.get("/health")
 async def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+app.post("/v1/demo/agent")(demo_agent_endpoint)
 
 
 @app.post("/v1/cases", status_code=status.HTTP_201_CREATED)
@@ -270,6 +273,8 @@ async def get_report(run_id: str, context: AuthContext) -> dict:
 
 @app.get("/v1/runs/{run_id}/report.pdf")
 async def get_report_pdf(run_id: str, context: AuthContext) -> Response:
+    from .reporting import render_pdf
+
     report = await get_report(run_id, context)
     return Response(
         content=render_pdf(report),

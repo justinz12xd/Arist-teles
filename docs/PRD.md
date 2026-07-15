@@ -36,7 +36,7 @@ Una ejecución exitosa permite:
 - Autenticación y aislamiento multiusuario.
 - Expedientes privados con documentos PDF, PNG, JPEG o WebP.
 - Extracción de texto digital y OCR para contenido escaneado.
-- Fallback a un modelo visual cuando la extracción local no alcanza el umbral de calidad.
+- Fallback futuro a un modelo visual configurable cuando la extracción local no alcanza el umbral de calidad; queda fuera del incremento RAG inicial.
 - Chunking, embeddings, recuperación semántica y contexto vecino.
 - Cinco agentes autónomos con despacho adaptativo.
 - Criterios sugeridos por el Planner y confirmados por el usuario.
@@ -69,7 +69,7 @@ El usuario carga archivos directamente en almacenamiento privado. El sistema val
 
 ### 3. Preparar evidencia
 
-El Document Agent coordina extracción, OCR, segmentación y embeddings. Las páginas con baja calidad quedan señaladas y pueden activar el fallback visual.
+El Document Agent coordina extracción, OCR, segmentación y embeddings. Las páginas con baja calidad quedan señaladas y, en una entrega posterior al incremento RAG inicial, podrán activar el fallback visual configurable.
 
 ### 4. Confirmar el plan
 
@@ -189,7 +189,7 @@ La interfaz podrá representar el progreso así:
 - Los documentos son contenido no confiable; sus instrucciones no modifican prompts ni herramientas.
 - Toda salida de agentes se valida contra esquemas.
 - Las herramientas de cada agente se limitan a su responsabilidad.
-- Credenciales administrativas y de OpenRouter permanecen en servidor.
+- Las credenciales de InsForge, las claves de OpenAI usadas directamente por chat y embeddings, y las del futuro proveedor visual configurable permanecen en servidor.
 - Realtime usa canales privados vinculados al propietario de la ejecución.
 - La observabilidad no registra cuerpos completos de documentos ni secretos.
 - Los datos permanecen hasta que el usuario elimina el expediente.
@@ -199,7 +199,7 @@ La interfaz podrá representar el progreso así:
 - Las etapas deben ser idempotentes y reanudables desde el último checkpoint válido.
 - Fallos transitorios usan reintentos acotados con backoff.
 - Límites de archivo, páginas, tokens, tiempo y concurrencia son configurables.
-- Los modelos de chat, visión y embeddings se seleccionan por configuración.
+- Chat y embeddings RAG usan OpenAI directo con modelos configurables; el modelo visual seguirá siendo futuro, configurable y ajeno a este incremento.
 - Una columna vectorial contiene embeddings de un solo modelo y dimensión.
 - El contenedor de ejecución debe ser portable entre InsForge Compute y un proveedor externo.
 - Toda ejecución conserva métricas de duración, tokens, costo, errores e intentos.

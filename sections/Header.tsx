@@ -4,9 +4,13 @@ import { useEffect, useState } from "react";
 import { Scale } from "lucide-react";
 
 const LINKS = [
-  { href: "#about", label: "Qué hace" },
+  { href: "#about", label: "Que hace" },
   { href: "/chat", label: "Chat" },
   { href: "#timeline", label: "Flujo" },
+  { href: "#tracks", label: "Agentes" },
+  { href: "/agent", label: "Consola" },
+  { href: "#speakers", label: "Controles" },
+  { href: "#faq", label: "FAQ" },
 ];
 
 export function Header() {
@@ -25,9 +29,9 @@ export function Header() {
       }`}
     >
       <div className="mx-auto flex h-full max-w-6xl items-center justify-between px-6">
-        <a href="#" className="flex items-center gap-2 font-medium text-white">
+        <a href="/" className="flex items-center gap-2 font-medium text-white">
           <Scale size={18} className="text-[var(--accent-cyan)]" />
-          ARISTÓTELES
+          Aristoteles
         </a>
         <nav className="hidden gap-8 md:flex">
           {LINKS.map((l) => (
@@ -41,10 +45,10 @@ export function Header() {
           ))}
         </nav>
         <a
-          href="/chat"
+          href="/agent"
           className="rounded-full bg-[var(--accent-marble)] px-4 py-1.5 text-sm font-medium text-black transition-shadow hover:shadow-[0_0_20px_rgb(216_177_95/0.3)]"
         >
-          Consultar
+          Probar agente
         </a>
       </div>
     </header>

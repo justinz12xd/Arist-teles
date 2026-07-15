@@ -168,7 +168,11 @@ class AnalysisPipeline:
         await self._stage(run_id, owner_id, RunStatus.deciding, 0.8)
         decision = await self.agents.decide(
             json.dumps(
-                {"objective": case["objective"], "criteria": criteria, "comparisons": comparison},
+                {
+                    "objective": case["objective"],
+                    "criteria": criteria,
+                    "comparisons": [item.model_dump(mode="json") for item in comparison],
+                },
                 ensure_ascii=False,
             )
         )

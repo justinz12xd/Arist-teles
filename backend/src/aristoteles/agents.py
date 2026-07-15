@@ -43,8 +43,8 @@ def _content(result: Any) -> str:
     return ""
 
 
-def parse_json(text: str) -> dict[str, Any]:
-    fenced = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", text, re.DOTALL)
+def parse_json(text: str) -> Any:
+    fenced = re.search(r"```(?:json)?\s*([\[{].*?[\]}])\s*```", text, re.DOTALL)
     candidate = fenced.group(1) if fenced else text.strip()
     try:
         return json.loads(candidate)
@@ -83,7 +83,9 @@ class AgentRuntime:
 
     async def compare(self, context: str) -> list[ProviderComparison]:
         payload = await self.run("comparison", context)
-        values = payload.get("comparisons", payload if isinstance(payload, list) else [])
+        values = payload.get("comparisons", []) if isinstance(payload, dict) else payload
+        if not isinstance(values, list):
+            raise ValueError("Comparison agent did not return a list")
         return [ProviderComparison.model_validate(item) for item in values]
 
     async def research(self, context: str) -> dict[str, Any]:
