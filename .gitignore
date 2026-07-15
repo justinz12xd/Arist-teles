@@ -39,3 +39,27 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Python backend
+backend/.venv/
+backend/.pytest_cache/
+backend/.ruff_cache/
+__pycache__/
+*.py[cod]
+*.egg-info/
+!backend/.env.example
+
+# InsForge & AI agent skills
+.insforge
+.agent
+.agents
+.augment
+.claude
+.cline
+.github/copilot*
+.kilocode
+.qoder
+.qwen
+.roo
+.trae
+.windsurf
