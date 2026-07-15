@@ -1,0 +1,50 @@
+- generic [ref=f6e1]:
+  - main [ref=f6e2]:
+    - generic [ref=f6e3]:
+      - complementary [ref=f6e4]:
+        - generic [ref=f6e5]:
+          - link "Volver al inicio" [ref=f6e6] [cursor=pointer]:
+            - /url: /
+          - button "Contraer barra lateral" [ref=f6e11]
+        - navigation [ref=f6e16]:
+          - button "Nuevo chat" [ref=f6e17]
+          - button "Buscar" [ref=f6e19]
+          - button "Biblioteca" [ref=f6e23]
+          - button "Historial" [ref=f6e26]
+        - generic [ref=f6e31]:
+          - paragraph [ref=f6e32]: Chats
+          - generic [ref=f6e33]:
+            - button [ref=f6e34]:
+              - paragraph [ref=f6e38]: Renovacion de equipos
+              - paragraph [ref=f6e39]: Proveedor B lidera; 2 riesgos pendientes.
+            - button [ref=f6e40]:
+              - paragraph [ref=f6e44]: Contrato de soporte
+              - paragraph [ref=f6e45]: Clausula de penalidad requiere revision.
+            - button [ref=f6e46]:
+              - paragraph [ref=f6e50]: Compra de licencias
+              - paragraph [ref=f6e51]: Falta confirmar renovacion automatica.
+            - button [ref=f6e52]:
+              - paragraph [ref=f6e56]: Comparacion logistica
+              - paragraph [ref=f6e57]: Opcion C tiene entrega parcial.
+      - generic [ref=f6e58]:
+        - generic [ref=f6e59]:
+          - generic [ref=f6e60]:
+            - text: Aristoteles
+            - generic [ref=f6e61]: chat
+          - generic [ref=f6e62]: oraculo de evidencia
+        - generic [ref=f6e64]:
+          - generic [ref=f6e65]:
+            - heading "Pregunta sobre tus documentos." [level=1] [ref=f6e70]
+            - paragraph [ref=f6e71]: Adjunta uno o varios PDFs y pide comparaciones, riesgos, garantias o evidencia localizada.
+          - generic [ref=f6e72]:
+            - button "Choose File" [ref=f6e73]
+            - generic [ref=f6e74]: Aristoteles-Pitch.pdf
+            - generic [ref=f6e76]:
+              - button "Adjuntar archivos" [active] [ref=f6e77]
+              - textbox "Preguntar lo que quieras" [ref=f6e80]
+              - button "Iniciar dictado por voz" [ref=f6e81]
+              - button "Conversar sobre propuestas" [disabled] [ref=f6e85]
+              - button "Analizar y decidir" [disabled] [ref=f6e88]
+          - paragraph [ref=f6e91]: Aristoteles puede equivocarse. Verifica siempre las citas antes de decidir.
+  - button "Open Next.js Dev Tools" [ref=f6e97] [cursor=pointer]
+  - alert [ref=f6e101]

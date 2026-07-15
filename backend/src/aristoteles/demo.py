@@ -376,7 +376,10 @@ def build_demo_agent_result(
     decision_summary = (
         f"La mejor opcion es {recommended} porque combina "
         f"{', '.join(best_option['advantages'][:2]).lower()}. "
-        f"Sus principales desventajas son: {', '.join(best_option['disadvantages'][:2]).lower()}."
+        f"Sus principales desventajas son: {', '.join(best_option['disadvantages'][:2]).lower()}. "
+        f"Frente a las otras alternativas, obtiene el mejor balance ponderado entre "
+        f"precio, garantia, entrega, cumplimiento y riesgo. Aun asi, antes de decidir "
+        f"conviene validar los puntos debiles detectados contra el documento original."
         if recommended
         else "No hay evidencia suficiente para recomendar una alternativa."
     )

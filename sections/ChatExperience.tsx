@@ -15,7 +15,7 @@ import {
   Search,
   Sparkles,
 } from "lucide-react";
-import { ChangeEvent, FormEvent, useMemo, useRef, useState } from "react";
+import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from "react";
 
 type AgentResult = {
   document: {
@@ -113,6 +113,31 @@ function answerWithoutDocuments(question: string) {
   return "Puedo responder preguntas generales del proyecto. Para respuestas con evidencia, adjunta uno o varios PDFs y pregunta por riesgos, costos, garantias, plazos o comparaciones.";
 }
 
+function conversationalAnswer(question: string, files: File[]) {
+  const normalized = normalizeQuestion(question);
+  const hasFiles = files.length > 0;
+
+  if (/^(hola|buenas|hey|hi|hello)\b/.test(normalized)) {
+    return hasFiles
+      ? `Hola. Veo ${files.length} documento(s) adjunto(s). Puedes pedirme que los compare o preguntarme primero que criterios conviene revisar.`
+      : "Hola. Soy el agente de Aristoteles. Puedo conversar sobre decisiones, criterios, proveedores, apps o el proyecto antes de analizar documentos.";
+  }
+
+  if (normalized.includes("criterio") || normalized.includes("decidir") || normalized.includes("decision")) {
+    return "Para tomar una mejor decision suelo mirar beneficios, desventajas, costo total, garantia, plazo, cumplimiento, riesgos y datos faltantes. Si adjuntas varios PDFs, puedo convertir cada documento en una alternativa y recomendar la mejor con razones.";
+  }
+
+  if (normalized.includes("beneficio") || normalized.includes("desventaja") || normalized.includes("malo") || normalized.includes("bueno")) {
+    return "Puedo separar lo bueno y lo malo de cada alternativa. Lo bueno cuenta como ventaja si mejora costo, garantia, entrega, soporte o cumplimiento. Lo malo pesa como riesgo si hay restricciones, penalidades, costos ocultos, baja garantia o entrega lenta.";
+  }
+
+  if (hasFiles) {
+    return `Tengo ${files.length} documento(s) listo(s). Si quieres conversamos sobre que buscar; si quieres decision, usa el boton de enviar para analizarlos y elegir la mejor alternativa.`;
+  }
+
+  return answerWithoutDocuments(question);
+}
+
 function fallbackAnswer(question: string, files: File[]): AgentResult {
   return {
     document: {
@@ -146,15 +171,90 @@ export function ChatExperience() {
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const canSend = useMemo(
     () => question.trim().length > 0 && !isSending,
     [isSending, question],
   );
 
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [messages]);
+
   function onFilesChange(event: ChangeEvent<HTMLInputElement>) {
     setFiles(Array.from(event.target.files ?? []));
     setError(null);
+  }
+
+  function appendUserMessage(content: string) {
+    setMessages((current) => [
+      ...current,
+      {
+        id: crypto.randomUUID(),
+        role: "user",
+        content,
+      },
+    ]);
+  }
+
+  function appendAssistantMessage(content: string, result?: AgentResult) {
+    setMessages((current) => [
+      ...current,
+      {
+        id: crypto.randomUUID(),
+        role: "assistant",
+        content,
+        result,
+      },
+    ]);
+  }
+
+  async function onConversationClick() {
+    if (!canSend) {
+      return;
+    }
+
+    const cleanQuestion = question.trim();
+    appendUserMessage(cleanQuestion);
+    setQuestion("");
+    setError(null);
+
+    if (!files.length) {
+      appendAssistantMessage(conversationalAnswer(cleanQuestion, files));
+      return;
+    }
+
+    setIsSending(true);
+    const formData = new FormData();
+    formData.set(
+      "objective",
+      `Conversa sobre todas las propuestas, compara beneficios y desventajas, elige la mejor y explica por que. Pregunta: ${cleanQuestion}`,
+    );
+    for (const file of files) {
+      formData.append("files", file);
+    }
+
+    try {
+      const response = await fetch("/api/agent-demo", {
+        method: "POST",
+        body: formData,
+      });
+      if (!response.ok) {
+        throw new Error("Backend unavailable");
+      }
+      const result = (await response.json()) as AgentResult;
+      appendAssistantMessage(
+        `Revisando todas las propuestas: ${result.decision.summary}`,
+        result,
+      );
+    } catch {
+      const result = fallbackAnswer(cleanQuestion, files);
+      setError("Usando respuesta local. Inicia el backend para comparar todas las propuestas.");
+      appendAssistantMessage(result.decision.summary, result);
+    } finally {
+      setIsSending(false);
+    }
   }
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
@@ -164,13 +264,7 @@ export function ChatExperience() {
     }
 
     const cleanQuestion = question.trim();
-    const userMessage: ChatMessage = {
-      id: crypto.randomUUID(),
-      role: "user",
-      content: cleanQuestion,
-    };
-
-    setMessages((current) => [...current, userMessage]);
+    appendUserMessage(cleanQuestion);
     setQuestion("");
     setIsSending(true);
     setError(null);
@@ -203,27 +297,11 @@ export function ChatExperience() {
         throw new Error("Backend unavailable");
       }
       const result = (await response.json()) as AgentResult;
-      setMessages((current) => [
-        ...current,
-        {
-          id: crypto.randomUUID(),
-          role: "assistant",
-          content: result.decision.summary,
-          result,
-        },
-      ]);
+      appendAssistantMessage(result.decision.summary, result);
     } catch {
       const result = fallbackAnswer(cleanQuestion, files);
       setError("Usando respuesta local. Inicia el backend para extraer evidencia real de los PDFs.");
-      setMessages((current) => [
-        ...current,
-        {
-          id: crypto.randomUUID(),
-          role: "assistant",
-          content: result.decision.summary,
-          result,
-        },
-      ]);
+      appendAssistantMessage(result.decision.summary, result);
     } finally {
       setIsSending(false);
     }
@@ -289,9 +367,9 @@ export function ChatExperience() {
           </header>
 
           <div className="flex min-h-0 flex-1 flex-col px-4 pb-6 sm:px-6">
-            <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col justify-end">
+            <div className="mx-auto flex min-h-0 w-full max-w-4xl flex-1 flex-col">
               {messages.length === 0 ? (
-                <div className="mb-9 text-center">
+                <div className="flex min-h-0 flex-1 flex-col justify-end pb-9 text-center">
                   <div className="mx-auto mb-5 flex h-11 w-11 items-center justify-center rounded-full border border-[rgb(216_177_95/0.24)] bg-[rgb(216_177_95/0.08)]">
                     <Sparkles size={18} className="text-[var(--accent-cyan)]" />
                   </div>
@@ -301,7 +379,7 @@ export function ChatExperience() {
                   </p>
                 </div>
               ) : (
-                <div className="mb-6 max-h-[calc(100vh-15rem)] space-y-4 overflow-y-auto pr-1">
+                <div className="mb-6 min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain pr-1 scrollbar-thin">
                   {messages.map((message) => (
                     <div key={message.id} className={message.role === "user" ? "ml-auto max-w-2xl" : "mr-auto max-w-3xl"}>
                       <div className={`rounded-2xl border px-4 py-3 text-sm leading-6 ${
@@ -317,6 +395,31 @@ export function ChatExperience() {
                               <span>confianza {Math.round(message.result.decision.confidence.score * 100)}%</span>
                               <span>{message.result.decision.confidence.band}</span>
                             </div>
+                            {message.result.decision.recommended_provider_id && (
+                              <div className="rounded-lg border border-[rgb(34_211_238/0.24)] bg-[rgb(34_211_238/0.08)] p-3">
+                                <p className="text-xs uppercase tracking-[0.18em] text-[var(--accent-cyan)]">
+                                  ganadora
+                                </p>
+                                <h3 className="mt-2 text-base font-medium text-white">
+                                  {message.result.decision.recommended_provider_id}
+                                </h3>
+                                <p className="mt-2 text-xs leading-5 text-[var(--primary-70)]">
+                                  {message.result.decision.summary}
+                                </p>
+                                {message.result.decision.risk_items.length > 0 && (
+                                  <div className="mt-3 space-y-1">
+                                    <p className="text-xs uppercase tracking-[0.14em] text-[var(--primary-44)]">
+                                      revisar antes de decidir
+                                    </p>
+                                    {message.result.decision.risk_items.slice(0, 3).map((risk) => (
+                                      <p key={risk} className="text-xs leading-5 text-amber-200">
+                                        {risk}
+                                      </p>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            )}
                             {message.result.research.evidence.slice(0, 3).map((item) => (
                               <div key={item.id} className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
                                 <div className="mb-1 flex items-center gap-2 text-xs text-[var(--primary-44)]">
@@ -349,6 +452,7 @@ export function ChatExperience() {
                       </div>
                     </div>
                   ))}
+                  <div ref={messagesEndRef} />
                 </div>
               )}
 
@@ -402,10 +506,21 @@ export function ChatExperience() {
                     }}
                   />
                   <button
+                    type="button"
+                    disabled={!canSend}
+                    onClick={onConversationClick}
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 text-[var(--primary-60)] transition-colors hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+                    aria-label="Conversar sobre propuestas"
+                    title="Conversar sobre propuestas"
+                  >
+                    <MessageSquare size={17} />
+                  </button>
+                  <button
                     type="submit"
                     disabled={!canSend}
                     className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--accent-marble)] text-black transition-transform hover:scale-105 disabled:cursor-not-allowed disabled:opacity-40"
-                    aria-label="Enviar mensaje"
+                    aria-label="Analizar y decidir"
+                    title="Analizar y decidir"
                   >
                     {isSending ? <Loader2 size={18} className="animate-spin" /> : <ArrowUp size={18} />}
                   </button>
